@@ -122,8 +122,35 @@ When a kid says just "make a game", offer **3 picks from different categories**,
 
 ## Audio + 2-player rules
 
-- **Audio**: mute by default, unmute on first user gesture (browser autoplay rules). For now, generate sounds inline with `AudioContext` oscillators — no audio file dependencies. A `tone.js` chiptune helper is planned but not yet shipped.
+- **Audio**: mute by default, unmute on first user gesture (browser autoplay rules). Generate sounds inline with `AudioContext` oscillators — write fresh per game so each game has its own sonic character. Don't reach for a shared sound library.
 - **2-player same-screen welcome**: pong-style, air-hockey, tug-of-war button-mash, drawing telephone are all great. The default is single-player *or* 2-player same-screen — both work for two siblings sharing one phone.
+
+## Assets & sounds: pull on demand
+
+There is no asset library and no curated sprite/word/sound list — by design. You already know the entire emoji set, the full canvas API, every Web Audio trick, and all four languages. Pre-curating any of those would just anchor your choices and shrink the variety of games kids can get.
+
+**Defaults — reach for these first, no fetching needed:**
+
+- **Sprites** → emoji (`🐕`, `⚽`, `🎮`, `🌞`) or canvas drawing primitives (`fillRect`, `arc`, gradients). Pick whatever fits *this* game.
+- **Sounds** → inline `AudioContext` oscillator (~10 lines per game). Write fresh — don't reuse another game's sounds verbatim.
+- **Words / translations** → produce them directly in context. Don't look them up; just write the right RU/LV/EN/ES word for the situation.
+
+**When defaults can't deliver** — e.g., the kid asks for "a real space-shooter ship", "an actual paddle thwack", or "a forest background image":
+
+1. **Look in neighbor games first**. Run `dir <other-game>/assets/` for a couple of games of similar genre. If something close already exists in the repo, copy that path — same asset, same look, no new download. (No global `/public/assets/` folder; assets live with the game that uses them.)
+2. **Otherwise pull fresh from CC0 sources**:
+   - Sprites/images → [kenney.nl](https://kenney.nl) (CC0)
+   - Sound effects → [freesound.org](https://freesound.org), filter to CC0
+   - **CC0 only.** Never pull anything that requires attribution or share-alike — we don't want to maintain credit lists for kid projects.
+3. **Save into `playground/<game-slug>/assets/<file>`** — game-scoped, never `/public/`. Each game owns its own assets. There is **no promotion** of frequently-used assets to a shared folder; if two games happen to need the same sprite, that's fine, each game has its own copy.
+4. **Attribute in a single HTML comment** at the top of the game file:
+   ```html
+   <!-- Assets: ship.png from kenney.nl Space Shooter pack (CC0) -->
+   ```
+   That's it. No `LICENSES.md`, no central tracker.
+5. **Keep it tiny.** Pull the smallest version of the asset that works. Avoid full sprite-sheet kitchen sinks.
+
+**Why this works**: each game is still self-contained (the repo's core principle). Variety stays unbounded — Claude makes the perfect choice for each game instead of reaching into a library. Maintenance is zero — there's nothing to maintain. If something turns out to be a recurring need over many games, the user can promote it manually; never auto-promote.
 
 ## Audience note
 
