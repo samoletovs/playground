@@ -185,8 +185,13 @@ const difficultyEl = document.getElementById('difficulty');
 
 const WIN_SCORE = 7;
 const PADDLE_H_FRAC = 0.22;
-const PADDLE_W = 10;
-const BALL_R = 6;
+// All sizes below scale with canvas width W so the game looks/feels right on
+// tiny phones AND iPad. Tuned by W/100 ratio: a paddle is ~1.4% of width,
+// a ball is ~1.2%, power-up radius is ~3.5%.
+function paddleW() { return Math.max(8, Math.round(W * 0.014)); }
+function ballR()   { return Math.max(6, Math.round(W * 0.012)); }
+function puwR()    { return Math.max(18, Math.round(W * 0.035)); }  // power-up radius (capsule half-width)
+function puwH()    { return Math.round(puwR() * 0.7); }              // power-up half-height
 
 let W, H, paddleH;
 let leftY, rightY;
@@ -235,10 +240,12 @@ const sfx = {
 };
 
 // -------- Difficulty config (AI mode) --------
+// ballSpeedFrac is the fraction of canvas WIDTH the ball travels per frame at 60fps.
+// This makes the relative speed feel the same on phone (~390px) and iPad (~1000px).
 const DIFF = {
-  easy:   { aiSpeed: 0.05,  aiError: 30, ballSpeed: 6 },
-  medium: { aiSpeed: 0.08,  aiError: 18, ballSpeed: 7 },
-  hard:   { aiSpeed: 0.095, aiError: 5,  ballSpeed: 8 },
+  easy:   { aiSpeed: 0.05,  aiError: 30, ballSpeedFrac: 0.0075 },  // ~9px/frame on 1200w
+  medium: { aiSpeed: 0.08,  aiError: 18, ballSpeedFrac: 0.0090 },  // ~11px/frame on 1200w
+  hard:   { aiSpeed: 0.095, aiError: 5,  ballSpeedFrac: 0.0105 },  // ~12.6px/frame on 1200w
 };
 
 // -------- Sizing --------
@@ -278,10 +285,11 @@ function spawnBall(towards) {
   const cfg = DIFF[difficulty];
   const angle = (Math.random() - 0.5) * Math.PI / 3;
   const dir = towards === 'left' ? -1 : 1;
+  const speed = W * cfg.ballSpeedFrac;
   return {
     x: W / 2, y: H / 2,
-    vx: cfg.ballSpeed * Math.cos(angle) * dir,
-    vy: cfg.ballSpeed * Math.sin(angle),
+    vx: speed * Math.cos(angle) * dir,
+    vy: speed * Math.sin(angle),
     fire: false,
     trail: [],
   };
@@ -394,27 +402,32 @@ function update(dt) {
   const cfg = DIFF[difficulty];
   const ms = dt / 16.67;
   const sm = slowUntil > performance.now() ? 0.55 : 1;
+  // Paddle keyboard speed scales with canvas height so it feels the same
+  // on phone and iPad. AI error also scales with H so the AI's miss
+  // distance is proportional, not absolute.
+  const padSpeed = H * 0.014;          // ~9px/frame on a 640-tall canvas
+  const aiErrorPx = H * cfg.aiError * 0.005;  // turns "30/18/5" into roughly H/220 max wiggle
 
   // Move left paddle (you)
   if (mode === 'ai') {
     if (p1TouchY !== null) leftY = clampPaddle(p1TouchY - paddleHeight('left') / 2);
-    else if (p1Up) leftY = clampPaddle(leftY - 8 * ms);
-    else if (p1Down) leftY = clampPaddle(leftY + 8 * ms);
+    else if (p1Up) leftY = clampPaddle(leftY - padSpeed * ms);
+    else if (p1Down) leftY = clampPaddle(leftY + padSpeed * ms);
     // AI moves right paddle
     const targetBall = balls.reduce((best, b) => (b.vx > 0 && b.x > (best?.x ?? -Infinity)) ? b : best, balls[0]);
     if (targetBall) {
-      const target = targetBall.y - paddleH / 2 + (Math.random() - 0.5) * cfg.aiError;
+      const target = targetBall.y - paddleH / 2 + (Math.random() - 0.5) * aiErrorPx;
       rightY += (target - rightY) * cfg.aiSpeed * ms;
       rightY = clampPaddle(rightY);
     }
   } else {
     // 2-player
     if (p1TouchY !== null) leftY = clampPaddle(p1TouchY - paddleHeight('left') / 2);
-    else if (p1Up) leftY = clampPaddle(leftY - 8 * ms);
-    else if (p1Down) leftY = clampPaddle(leftY + 8 * ms);
+    else if (p1Up) leftY = clampPaddle(leftY - padSpeed * ms);
+    else if (p1Down) leftY = clampPaddle(leftY + padSpeed * ms);
     if (p2TouchY !== null) rightY = clampPaddle(p2TouchY - paddleHeight('right') / 2);
-    else if (p2Up) rightY = clampPaddle(rightY - 8 * ms);
-    else if (p2Down) rightY = clampPaddle(rightY + 8 * ms);
+    else if (p2Up) rightY = clampPaddle(rightY - padSpeed * ms);
+    else if (p2Down) rightY = clampPaddle(rightY + padSpeed * ms);
   }
 
   // Move balls
@@ -429,13 +442,13 @@ function update(dt) {
     if (b.trail.length > 12) b.trail.shift();
 
     // Top/bottom walls
-    if (b.y - BALL_R < 0) { b.y = BALL_R; b.vy = -b.vy; sfx.wall(); }
-    if (b.y + BALL_R > H) { b.y = H - BALL_R; b.vy = -b.vy; sfx.wall(); }
+    if (b.y - ballR() < 0) { b.y = ballR(); b.vy = -b.vy; sfx.wall(); }
+    if (b.y + ballR() > H) { b.y = H - ballR(); b.vy = -b.vy; sfx.wall(); }
 
     // Left paddle
     const lH = paddleHeight('left');
-    if (b.vx < 0 && b.x - BALL_R < PADDLE_W && b.y > leftY && b.y < leftY + lH && b.x > 0) {
-      b.x = PADDLE_W + BALL_R;
+    if (b.vx < 0 && b.x - ballR() < paddleW() && b.y > leftY && b.y < leftY + lH && b.x > 0) {
+      b.x = paddleW() + ballR();
       const hit = (b.y - (leftY + lH / 2)) / (lH / 2);
       const speed = Math.hypot(b.vx, b.vy);
       const angle = hit * (Math.PI / 3);
@@ -447,8 +460,8 @@ function update(dt) {
     }
     // Right paddle
     const rH = paddleHeight('right');
-    if (b.vx > 0 && b.x + BALL_R > W - PADDLE_W && b.y > rightY && b.y < rightY + rH && b.x < W) {
-      b.x = W - PADDLE_W - BALL_R;
+    if (b.vx > 0 && b.x + ballR() > W - paddleW() && b.y > rightY && b.y < rightY + rH && b.x < W) {
+      b.x = W - paddleW() - ballR();
       const hit = (b.y - (rightY + rH / 2)) / (rH / 2);
       const speed = Math.hypot(b.vx, b.vy);
       const angle = Math.PI - hit * (Math.PI / 3);
@@ -460,7 +473,7 @@ function update(dt) {
     }
 
     // Score
-    if (b.x < -BALL_R * 2) {
+    if (b.x < -ballR() * 2) {
       const pts = b.fire ? 2 : 1;
       scoreR += pts;
       scoreAIEl.textContent = scoreR;
@@ -468,7 +481,7 @@ function update(dt) {
       shake();
       spawnParticles(0, b.y, '#f87171', 20);
       balls.splice(i, 1);
-    } else if (b.x > W + BALL_R * 2) {
+    } else if (b.x > W + ballR() * 2) {
       const pts = b.fire ? 2 : 1;
       scoreL += pts;
       scorePlayerEl.textContent = scoreL;
@@ -486,13 +499,14 @@ function update(dt) {
     balls.push(spawnBall(scoreL > scoreR ? 'right' : 'left'));
   }
 
-  // Power-up: ball collision
+  // Power-up: ball collision (use generous catch radius so it's easy to hit)
   for (let i = powerups.length - 1; i >= 0; i--) {
     const p = powerups[i];
     p.y += p.vy * ms;
     let hit = false, hitter = null;
+    const catchR = ballR() + puwR() * 0.85;
     for (const b of balls) {
-      if (Math.hypot(b.x - p.x, b.y - p.y) < BALL_R + 14) {
+      if (Math.hypot(b.x - p.x, b.y - p.y) < catchR) {
         hit = true;
         hitter = b.vx > 0 ? 'left' : 'right';  // last side that hit it
         break;
@@ -501,18 +515,20 @@ function update(dt) {
     if (hit) {
       applyPowerup(p.type.id, hitter);
       powerups.splice(i, 1);
-    } else if (p.y - 14 > H) {
+    } else if (p.y - puwR() > H) {
       powerups.splice(i, 1);
     }
   }
 
-  // Spawn powerups (low probability per frame, only one at a time)
+  // Spawn powerups (low probability per frame, only one at a time).
+  // Fall speed scales with canvas height so they take ~5-6 seconds to cross
+  // any screen — kid-friendly anticipation window.
   if (powerups.length === 0 && Math.random() < 0.0035) {
     const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
     powerups.push({
       x: W / 2 + (Math.random() - 0.5) * W * 0.5,
-      y: -20,
-      vy: 1.5 + Math.random() * 0.5,
+      y: -puwR(),
+      vy: H / 360,   // ~6 seconds to cross at 60fps regardless of canvas size
       type,
     });
   }
@@ -555,16 +571,18 @@ function draw() {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Power-ups (capsules, falling)
+  // Power-ups (capsules, falling). Size scales with canvas width.
   for (const p of powerups) {
+    const r = puwR();
+    const hh = puwH();
     ctx.fillStyle = p.type.color;
     if (ctx.roundRect) {
-      ctx.beginPath(); ctx.roundRect(p.x - 14, p.y - 9, 28, 18, 5); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(p.x - r, p.y - hh, r * 2, hh * 2, hh * 0.6); ctx.fill();
     } else {
-      ctx.fillRect(p.x - 14, p.y - 9, 28, 18);
+      ctx.fillRect(p.x - r, p.y - hh, r * 2, hh * 2);
     }
     ctx.fillStyle = '#04162e';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold ' + Math.round(hh * 1.4) + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(p.type.label, p.x, p.y);
@@ -574,9 +592,9 @@ function draw() {
   const lH = paddleHeight('left');
   const rH = paddleHeight('right');
   ctx.fillStyle = widerLeftUntil > performance.now() ? '#86efac' : '#4ade80';
-  ctx.fillRect(0, leftY, PADDLE_W, lH);
+  ctx.fillRect(0, leftY, paddleW(), lH);
   ctx.fillStyle = widerRightUntil > performance.now() ? '#fca5a5' : '#f87171';
-  ctx.fillRect(W - PADDLE_W, rightY, PADDLE_W, rH);
+  ctx.fillRect(W - paddleW(), rightY, paddleW(), rH);
 
   // Ball trails
   for (const b of balls) {
@@ -584,7 +602,7 @@ function draw() {
       ctx.globalAlpha = (t.life / 12) * 0.4;
       ctx.fillStyle = b.fire ? '#fbbf24' : '#fef3c7';
       ctx.beginPath();
-      ctx.arc(t.x, t.y, BALL_R * (t.life / 12), 0, Math.PI * 2);
+      ctx.arc(t.x, t.y, ballR() * (t.life / 12), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -596,12 +614,12 @@ function draw() {
       // Glow
       ctx.fillStyle = '#fbbf24';
       ctx.beginPath();
-      ctx.arc(b.x, b.y, BALL_R * 1.6, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, ballR() * 1.6, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = b.fire ? '#fee2c0' : '#fef3c7';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, ballR(), 0, Math.PI * 2);
     ctx.fill();
   }
 
