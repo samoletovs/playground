@@ -10,99 +10,68 @@
     --bg: #0b1020;
     --panel: #131a33;
     --grid: #1b2347;
-    --snake: #4ade80;
-    --head: #22c55e;
-    --food: #f87171;
     --text: #e5e7eb;
     --muted: #94a3b8;
+    --snake: #4ade80;
   }
   * { box-sizing: border-box; }
   html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg);
-    color: var(--text);
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
+    height: 100%; overflow: hidden; overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
   }
   .app {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
     padding: max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px);
     height: 100dvh;
   }
   header {
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    width: 100%; max-width: 800px; display: flex;
+    align-items: center; justify-content: space-between; gap: 12px; flex: 0 0 auto;
   }
   .title-wrap { display: flex; align-items: center; gap: 10px; }
   .back {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 14px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: var(--panel);
+    color: var(--muted); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 8px; background: var(--panel);
   }
-  .back:active { transform: translateY(1px); }
   h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
-  .score { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
   .score b { color: var(--text); }
+  .play-area {
+    flex: 1 1 auto; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
   .board-wrap {
-    position: relative;
-    /* Scale to the largest square that fits in BOTH width and height budgets, so
-       Snake fills the screen on phone (390px wide) AND on iPad (~1000px). */
-    width: min(100vw - 24px, calc(100dvh - 200px), 800px);
-    aspect-ratio: 1 / 1;
-    background: var(--panel);
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    overflow: hidden;
-    touch-action: none;
+    position: relative; background: var(--panel); border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4); overflow: hidden; touch-action: none;
   }
   canvas { width: 100%; height: 100%; display: block; }
   .overlay {
-    position: absolute;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    background: rgba(11, 16, 32, 0.78);
-    backdrop-filter: blur(4px);
-    text-align: center;
-    padding: 16px;
+    position: absolute; inset: 0; display: none;
+    align-items: center; justify-content: center; flex-direction: column;
+    gap: 12px; background: rgba(11, 16, 32, 0.86);
+    backdrop-filter: blur(4px); text-align: center; padding: 16px;
   }
   .overlay.show { display: flex; }
   .overlay h2 { margin: 0; font-size: 22px; }
   .overlay p { margin: 0; color: var(--muted); font-size: 14px; }
   button {
-    appearance: none;
-    border: none;
-    background: var(--head);
-    color: #04210f;
-    font-weight: 700;
-    font-size: 16px;
-    padding: 12px 22px;
-    border-radius: 999px;
-    cursor: pointer;
-    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
+    appearance: none; border: none; background: var(--snake); color: #04162e;
+    font-weight: 700; font-size: 16px; padding: 12px 22px;
+    border-radius: 999px; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(74, 222, 128, 0.35);
   }
   button:active { transform: translateY(1px); }
-  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 480px; }
+  .toast {
+    position: absolute; top: 14%; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 16px; font-weight: 700;
+    padding: 8px 14px; border-radius: 999px;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.15s ease, transform 0.4s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 800px; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -119,55 +88,120 @@
     </div>
   </header>
 
-  <div class="board-wrap" id="board">
-    <canvas id="game"></canvas>
-    <div class="overlay show" id="overlay">
-      <h2 id="title">Snake</h2>
-      <p id="msg"
-         data-en="Swipe to steer. Arrow keys on desktop."
-         data-ru="Свайп — поворот. Стрелки на компьютере."
-         data-lv="Velc, lai grieztu. Bultas datorā.">Swipe to steer. Arrow keys on desktop.</p>
-      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+      <div class="toast" id="toast"></div>
+      <div class="overlay show" id="overlay">
+        <h2 id="title">Snake</h2>
+        <p id="msg"
+           data-en="Swipe to steer. Catch 🍎 +1, 🍓 +5, avoid 💀!"
+           data-ru="Свайп — поворот. Лови 🍎 +1, 🍓 +5, избегай 💀!"
+           data-lv="Velc, lai grieztu. Ķer 🍎 +1, 🍓 +5, izvairies no 💀!">Swipe to steer. Catch 🍎 +1, 🍓 +5, avoid 💀!</p>
+        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      </div>
     </div>
   </div>
 
   <div class="hint"
-       data-en="Tip: swipe anywhere on the board."
-       data-ru="Совет: свайп в любом месте поля."
-       data-lv="Padoms: velc jebkur uz lauka.">Tip: swipe anywhere on the board.</div>
+       data-en="🟢 ghost · 🔵 slow · 🟡 double points"
+       data-ru="🟢 призрак · 🔵 медленно · 🟡 двойные очки"
+       data-lv="🟢 spoks · 🔵 lēnāk · 🟡 dubulti punkti">🟢 ghost · 🔵 slow · 🟡 double points</div>
 </div>
 
 <script src="lang.js"></script>
 
 <script>
 (() => {
+  // ============================================================================
+  // Snake — enhanced with food types, power-ups, particles, sound, combo bonus
+  //   • 🍎 normal apple +1 length, +10 pts
+  //   • 🍓 bonus berry +1 length, +50 pts (rare, time-limited, blinks)
+  //   • 💀 skull -2 length, -20 pts (occasional hazard)
+  //   • Power-ups (caught by snake head):
+  //       🟢 ghost (5s)  — pass through walls AND own body
+  //       🔵 slow (8s)   — half tick speed
+  //       🟡 double (8s) — score×2 on every food
+  //   • Combo: chain food without dying = bonus pts that scale with length
+  //   • Particles on eat, screen-shake on death, sounds throughout
+  //   • Speed scales smoothly with length
+  // ============================================================================
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const board = document.getElementById('board');
+  const playArea = document.querySelector('.play-area');
   const overlay = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
   const titleEl = document.getElementById('title');
   const msgEl = document.getElementById('msg');
   const scoreEl = document.getElementById('score');
   const bestEl = document.getElementById('best');
+  const toastEl = document.getElementById('toast');
 
   const COLS = 20;
   const ROWS = 20;
-  let cell = 20;
+  const BOARD_AR = 1 / 1;
+  const BOARD_MAX = 800;
 
+  // -------- Audio (lazy-init for iOS) --------
+  let audio = null;
+  function ensureAudio() {
+    if (audio) { if (audio.state === 'suspended') audio.resume().catch(() => {}); return; }
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  function beep(freq, dur, vol = 0.18, type = 'square') {
+    if (!audio) return;
+    try {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.connect(gain); gain.connect(audio.destination);
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
+      osc.start(); osc.stop(audio.currentTime + dur);
+    } catch (_) {}
+  }
+  const sfx = {
+    eat:    () => beep(800, 0.08, 0.18),
+    bonus:  () => { beep(660, 0.08); setTimeout(() => beep(880, 0.10), 80); setTimeout(() => beep(1100, 0.14), 180); },
+    bad:    () => beep(140, 0.20, 0.20, 'sawtooth'),
+    power:  () => { beep(540, 0.08); setTimeout(() => beep(720, 0.10), 70); setTimeout(() => beep(960, 0.14), 150); },
+    die:    () => beep(110, 0.40, 0.22, 'sawtooth'),
+  };
+
+  // -------- Sizing --------
+  let cellSize = 20;
   function fitCanvas() {
-    const rect = board.getBoundingClientRect();
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width = w + 'px';
+    board.style.height = h + 'px';
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    cell = canvas.width / COLS;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    cellSize = (w * dpr) / COLS;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
   window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
 
-  let snake, dir, nextDir, food, score, best, alive, tickMs, lastTick, raf;
-  best = parseInt(localStorage.getItem('snake.best') || '0', 10);
+  // -------- State --------
+  let snake, dir, nextDir, score, best, alive, tickMs, lastTick, raf;
+  let foods;          // array of { x, y, type, ttl?, blink? }
+  let powerups;       // array of { x, y, type, ttl }
+  let particles;      // array of { x, y, vx, vy, life, color }
+  let combo;          // current combo count
+  let ghostUntil = 0, slowUntil = 0, doubleUntil = 0;
+  let shakeUntil = 0;
+
+  best = 0;
+  try { best = parseInt(localStorage.getItem('snake.best') || '0', 10); } catch (_) {}
   bestEl.textContent = best;
 
   function reset() {
@@ -175,46 +209,105 @@
     dir = {x: 1, y: 0};
     nextDir = dir;
     score = 0;
+    combo = 0;
     tickMs = 130;
     alive = true;
-    placeFood();
+    foods = [];
+    powerups = [];
+    particles = [];
+    ghostUntil = slowUntil = doubleUntil = 0;
+    placeFood('apple');
     scoreEl.textContent = score;
   }
 
-  function placeFood() {
-    while (true) {
-      const f = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-      if (!snake.some(s => s.x === f.x && s.y === f.y)) { food = f; return; }
+  // -------- Spawning --------
+  function emptyCell() {
+    let attempts = 0;
+    while (attempts++ < 300) {
+      const x = Math.floor(Math.random() * COLS);
+      const y = Math.floor(Math.random() * ROWS);
+      if (snake.some(s => s.x === x && s.y === y)) continue;
+      if (foods.some(f => f.x === x && f.y === y)) continue;
+      if (powerups.some(p => p.x === x && p.y === y)) continue;
+      return { x, y };
     }
+    return null;
+  }
+  function placeFood(type) {
+    const c = emptyCell();
+    if (!c) return;
+    if (type === 'apple') foods.push({ x: c.x, y: c.y, type: 'apple' });
+    else if (type === 'berry') foods.push({ x: c.x, y: c.y, type: 'berry', ttl: 60 });  // ~7s @ 130ms tick
+    else if (type === 'skull') foods.push({ x: c.x, y: c.y, type: 'skull', ttl: 50 });
+  }
+  function placePowerup() {
+    const c = emptyCell();
+    if (!c) return;
+    const types = ['ghost', 'slow', 'double'];
+    powerups.push({
+      x: c.x, y: c.y,
+      type: types[Math.floor(Math.random() * types.length)],
+      ttl: 60,
+    });
   }
 
-  function step() {
-    if (!alive) return;
-    if ((nextDir.x !== -dir.x || nextDir.y !== -dir.y)) dir = nextDir;
-    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return die();
-    if (snake.some((s, i) => i < snake.length - 1 && s.x === head.x && s.y === head.y)) return die();
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score += 1;
-      scoreEl.textContent = score;
-      if (score > best) {
-        best = score;
-        localStorage.setItem('snake.best', String(best));
-        bestEl.textContent = best;
-      }
-      tickMs = Math.max(60, tickMs - 2);
-      placeFood();
-    } else {
-      snake.pop();
+  // -------- Effects --------
+  function spawnParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 0.5 + Math.random() * 1.5;
+      particles.push({
+        x: (x + 0.5) * cellSize, y: (y + 0.5) * cellSize,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: 25 + Math.random() * 15,
+        color,
+      });
     }
   }
+  function shake() { shakeUntil = performance.now() + 250; }
+  let toastTimeout = null;
+  function showToast(text, ms = 800) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toastEl.classList.remove('show'), ms);
+  }
 
+  // -------- Power-up effects --------
+  const POWERUP_CONFIG = {
+    ghost:  { color: '#4ade80', label: 'G', ms: 5000,
+              ru: 'Призрак!', lv: 'Spoks!', en: 'Ghost!' },
+    slow:   { color: '#60a5fa', label: 'S', ms: 8000,
+              ru: 'Медленно!', lv: 'Lēnāk!', en: 'Slow!' },
+    double: { color: '#facc15', label: '2×', ms: 8000,
+              ru: 'Двойные очки!', lv: 'Dubulti punkti!', en: 'Double points!' },
+  };
+  function applyPowerup(p) {
+    const cfg = POWERUP_CONFIG[p.type];
+    const now = performance.now();
+    if (p.type === 'ghost')  ghostUntil  = now + cfg.ms;
+    if (p.type === 'slow')   slowUntil   = now + cfg.ms;
+    if (p.type === 'double') doubleUntil = now + cfg.ms;
+    sfx.power();
+    showToast(Lang.t(cfg.ru, cfg.lv, cfg.en));
+    spawnParticles(p.x, p.y, cfg.color, 12);
+  }
+
+  function isGhost()  { return ghostUntil  > performance.now(); }
+  function isSlow()   { return slowUntil   > performance.now(); }
+  function isDouble() { return doubleUntil > performance.now(); }
+
+  // -------- Death --------
   function die() {
     alive = false;
+    sfx.die();
+    shake();
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('snake.best', String(best)); } catch (_) {}
+      bestEl.textContent = best;
+    }
     titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
-    // Sneak-in #1: 25% chance the result line gets a Spanish celebratory cheer
-    // when you matched or beat your best score; otherwise the bilingual recap.
     const beatBest = score > 0 && score >= best;
     const baseMsg = Lang.t(
       `Счёт ${score}. Жми Старт.`,
@@ -226,66 +319,289 @@
     overlay.classList.add('show');
   }
 
-  function draw() {
-    const w = canvas.width / (window.devicePixelRatio || 1);
-    const h = canvas.height / (window.devicePixelRatio || 1);
-    ctx.fillStyle = getCSS('--panel');
-    ctx.fillRect(0, 0, w, h);
+  // -------- Step --------
+  function step() {
+    if (!alive) return;
 
-    ctx.strokeStyle = getCSS('--grid');
-    ctx.lineWidth = 1;
-    for (let i = 1; i < COLS; i++) {
-      const x = i * (w / COLS);
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    // honor next-direction (already validated to not be reversal)
+    dir = nextDir;
+
+    const head = snake[0];
+    let nx = head.x + dir.x;
+    let ny = head.y + dir.y;
+
+    // Wall collision (or wrap if ghost)
+    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) {
+      if (isGhost()) {
+        nx = (nx + COLS) % COLS;
+        ny = (ny + ROWS) % ROWS;
+      } else {
+        return die();
+      }
     }
-    for (let j = 1; j < ROWS; j++) {
-      const y = j * (h / ROWS);
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    // Self collision (skip if ghost)
+    if (!isGhost() && snake.some((s, i) => i > 0 && s.x === nx && s.y === ny)) return die();
+
+    snake.unshift({ x: nx, y: ny });
+
+    // Food check
+    let ate = false;
+    for (let i = foods.length - 1; i >= 0; i--) {
+      const f = foods[i];
+      if (f.x === nx && f.y === ny) {
+        const mul = isDouble() ? 2 : 1;
+        if (f.type === 'apple') {
+          score += 10 * mul;
+          combo += 1;
+          if (combo >= 3) score += (combo - 2) * 5 * mul;  // chain bonus
+          spawnParticles(nx, ny, '#ef4444');
+          sfx.eat();
+        } else if (f.type === 'berry') {
+          score += 50 * mul;
+          combo += 1;
+          if (combo >= 3) score += (combo - 2) * 5 * mul;
+          spawnParticles(nx, ny, '#f472b6', 14);
+          sfx.bonus();
+          showToast(Lang.pickEs('¡Excelente!', `+${50 * mul}`, 0.3), 600);
+        } else if (f.type === 'skull') {
+          score = Math.max(0, score - 20);
+          combo = 0;
+          spawnParticles(nx, ny, '#94a3b8', 12);
+          sfx.bad();
+          // Lose 2 segments (but keep at least 3)
+          for (let k = 0; k < 2 && snake.length > 3; k++) snake.pop();
+        }
+        scoreEl.textContent = score;
+        foods.splice(i, 1);
+        ate = (f.type !== 'skull');  // skull doesn't grow snake
+        // Speed up slightly per apple eaten
+        if (f.type === 'apple') tickMs = Math.max(60, tickMs - 2);
+        break;
+      }
     }
 
-    if (food) {
-      const cw = w / COLS, ch = h / ROWS;
-      ctx.fillStyle = getCSS('--food');
-      const pad = Math.max(2, cw * 0.18);
-      roundRect(ctx, food.x * cw + pad, food.y * ch + pad, cw - pad * 2, ch - pad * 2, Math.min(cw, ch) * 0.3);
-      ctx.fill();
+    // Power-up pickup
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      const p = powerups[i];
+      if (p.x === nx && p.y === ny) {
+        applyPowerup(p);
+        powerups.splice(i, 1);
+      }
     }
 
-    if (snake) {
-      const cw = w / COLS, ch = h / ROWS;
-      snake.forEach((s, i) => {
-        ctx.fillStyle = i === 0 ? getCSS('--head') : getCSS('--snake');
-        const pad = Math.max(1, cw * 0.08);
-        roundRect(ctx, s.x * cw + pad, s.y * ch + pad, cw - pad * 2, ch - pad * 2, Math.min(cw, ch) * 0.25);
-        ctx.fill();
-      });
+    if (!ate) snake.pop();
+
+    // Always have at least one apple on board
+    if (!foods.some(f => f.type === 'apple')) placeFood('apple');
+
+    // Random spawns (low probability per tick)
+    if (Math.random() < 0.012 && !foods.some(f => f.type === 'berry')) placeFood('berry');
+    if (Math.random() < 0.006 && !foods.some(f => f.type === 'skull') && snake.length > 5) placeFood('skull');
+    if (Math.random() < 0.006 && powerups.length === 0) placePowerup();
+
+    // Tick down food and powerup TTLs
+    for (let i = foods.length - 1; i >= 0; i--) {
+      if (foods[i].ttl !== undefined) {
+        foods[i].ttl -= 1;
+        if (foods[i].ttl <= 0) foods.splice(i, 1);
+      }
     }
-  }
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      powerups[i].ttl -= 1;
+      if (powerups[i].ttl <= 0) powerups.splice(i, 1);
+    }
 
-  function roundRect(ctx, x, y, w, h, r) {
-    r = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function getCSS(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.05;
+      p.life -= 1;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
   }
 
   function loop(ts) {
+    raf = requestAnimationFrame(loop);
+    if (!alive) return;
     if (!lastTick) lastTick = ts;
-    if (ts - lastTick >= tickMs) {
-      lastTick = ts;
+    const effectiveMs = isSlow() ? tickMs * 1.6 : tickMs;
+    if (ts - lastTick >= effectiveMs) {
       step();
+      lastTick = ts;
     }
     draw();
-    if (alive) raf = requestAnimationFrame(loop);
   }
+
+  // -------- Draw --------
+  function getCSS(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function draw() {
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    const cell = w / COLS;
+
+    // Screen shake
+    let ox = 0, oy = 0;
+    if (shakeUntil > performance.now()) {
+      ox = (Math.random() - 0.5) * 4;
+      oy = (Math.random() - 0.5) * 4;
+    }
+
+    ctx.save();
+    ctx.translate(ox, oy);
+
+    ctx.fillStyle = getCSS('--panel');
+    ctx.fillRect(-ox, -oy, w, h);
+
+    // Subtle grid
+    ctx.strokeStyle = getCSS('--grid');
+    ctx.lineWidth = 1;
+    for (let i = 1; i < COLS; i++) {
+      const x = i * cell;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let j = 1; j < ROWS; j++) {
+      const y = j * cell;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // If no game state yet, just draw the empty board.
+    if (!snake) { ctx.restore(); return; }
+
+    // Foods
+    for (const f of foods || []) {
+      const blink = f.ttl !== undefined && f.ttl < 15 && Math.floor(f.ttl / 3) % 2 === 0;
+      if (blink) continue;
+      ctx.font = (cell * 0.85) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const emoji = f.type === 'apple' ? '🍎' : f.type === 'berry' ? '🍓' : '💀';
+      ctx.fillText(emoji, (f.x + 0.5) * cell, (f.y + 0.5) * cell);
+    }
+
+    // Power-ups (pulse)
+    for (const p of powerups || []) {
+      const cfg = POWERUP_CONFIG[p.type];
+      const blink = p.ttl < 15 && Math.floor(p.ttl / 3) % 2 === 0;
+      if (blink) continue;
+      const pulse = 1 + 0.1 * Math.sin(performance.now() / 150);
+      const r = cell * 0.4 * pulse;
+      ctx.fillStyle = cfg.color;
+      ctx.beginPath();
+      ctx.arc((p.x + 0.5) * cell, (p.y + 0.5) * cell, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#04162e';
+      ctx.font = 'bold ' + (cell * 0.45) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cfg.label, (p.x + 0.5) * cell, (p.y + 0.5) * cell);
+    }
+
+    // Snake (gradient body, head bigger)
+    const head = snake[0];
+    const ghost = isGhost();
+    snake.forEach((s, i) => {
+      const t = i / snake.length;
+      const col = ghost
+        ? `rgba(74, 222, 128, ${0.35 + (1 - t) * 0.35})`
+        : `rgba(74, 222, 128, ${0.55 + (1 - t) * 0.45})`;
+      ctx.fillStyle = col;
+      const pad = i === 0 ? 1 : 2;
+      const r = i === 0 ? cell * 0.18 : cell * 0.25;
+      // rounded rectangle (with fallback)
+      const x = s.x * cell + pad;
+      const y = s.y * cell + pad;
+      const ww = cell - pad * 2;
+      const hh = cell - pad * 2;
+      if (ctx.roundRect) {
+        ctx.beginPath(); ctx.roundRect(x, y, ww, hh, r); ctx.fill();
+      } else {
+        ctx.fillRect(x, y, ww, hh);
+      }
+    });
+
+    // Eyes on the head
+    ctx.fillStyle = '#04162e';
+    const hx = (head.x + 0.5) * cell;
+    const hy = (head.y + 0.5) * cell;
+    const eyeOff = cell * 0.18;
+    const eyeR = cell * 0.07;
+    let exA, eyA, exB, eyB;
+    if (dir.x === 1)       { exA = hx + eyeOff; eyA = hy - eyeOff; exB = hx + eyeOff; eyB = hy + eyeOff; }
+    else if (dir.x === -1) { exA = hx - eyeOff; eyA = hy - eyeOff; exB = hx - eyeOff; eyB = hy + eyeOff; }
+    else if (dir.y === 1)  { exA = hx - eyeOff; eyA = hy + eyeOff; exB = hx + eyeOff; eyB = hy + eyeOff; }
+    else                   { exA = hx - eyeOff; eyA = hy - eyeOff; exB = hx + eyeOff; eyB = hy - eyeOff; }
+    ctx.beginPath(); ctx.arc(exA, eyA, eyeR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(exB, eyB, eyeR, 0, Math.PI * 2); ctx.fill();
+
+    // Particles
+    for (const p of particles || []) {
+      ctx.globalAlpha = Math.max(0, p.life / 40);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
+
+    // Active power-up indicator (small pill at top-left)
+    const indicators = [];
+    if (isGhost())  indicators.push({ c: POWERUP_CONFIG.ghost.color,  l: 'G' });
+    if (isSlow())   indicators.push({ c: POWERUP_CONFIG.slow.color,   l: 'S' });
+    if (isDouble()) indicators.push({ c: POWERUP_CONFIG.double.color, l: '2×' });
+    if (indicators.length) {
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      let xx = 8;
+      for (const ind of indicators) {
+        ctx.fillStyle = ind.c;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(xx, 8, 24, 18, 4); ctx.fill(); }
+        else ctx.fillRect(xx, 8, 24, 18);
+        ctx.fillStyle = '#04162e';
+        ctx.fillText(ind.l, xx + 5, 11);
+        xx += 28;
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // -------- Controls --------
+  function setDir(nx, ny) {
+    if (nx === -dir.x && ny === -dir.y) return; // no reversal
+    nextDir = { x: nx, y: ny };
+  }
+  window.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (!alive && (k === ' ' || k === 'Enter')) { ensureAudio(); start(); return; }
+    if (!alive) return;
+    if (k === 'ArrowUp' || k === 'w')    setDir(0, -1);
+    if (k === 'ArrowDown' || k === 's')  setDir(0, 1);
+    if (k === 'ArrowLeft' || k === 'a')  setDir(-1, 0);
+    if (k === 'ArrowRight' || k === 'd') setDir(1, 0);
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k)) e.preventDefault();
+  }, { passive: false });
+
+  let touchStart = null;
+  board.addEventListener('pointerdown', (e) => {
+    ensureAudio();
+    touchStart = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+  });
+  board.addEventListener('pointermove', (e) => {
+    if (!touchStart || !alive) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    const threshold = 18;
+    if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDir(dx > 0 ? 1 : -1, 0);
+    } else {
+      setDir(0, dy > 0 ? 1 : -1);
+    }
+    touchStart = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+  });
+  window.addEventListener('pointerup', () => { touchStart = null; });
+  window.addEventListener('pointercancel', () => { touchStart = null; });
 
   function start() {
     cancelAnimationFrame(raf);
@@ -295,39 +611,9 @@
     raf = requestAnimationFrame(loop);
   }
 
-  startBtn.addEventListener('click', start);
-
-  window.addEventListener('keydown', (e) => {
-    const k = e.key;
-    if (k === 'ArrowUp' || k === 'w') nextDir = { x: 0, y: -1 };
-    else if (k === 'ArrowDown' || k === 's') nextDir = { x: 0, y: 1 };
-    else if (k === 'ArrowLeft' || k === 'a') nextDir = { x: -1, y: 0 };
-    else if (k === 'ArrowRight' || k === 'd') nextDir = { x: 1, y: 0 };
-    else if (k === ' ' || k === 'Enter') { if (!alive || overlay.classList.contains('show')) start(); }
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k)) e.preventDefault();
-  }, { passive: false });
-
-  let touchStart = null;
-  board.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    touchStart = { x: t.clientX, y: t.clientY };
-  }, { passive: true });
-  board.addEventListener('touchmove', (e) => {
-    if (!touchStart) return;
-    const t = e.touches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    const threshold = 18;
-    if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
-    if (Math.abs(dx) > Math.abs(dy)) nextDir = { x: dx > 0 ? 1 : -1, y: 0 };
-    else nextDir = { x: 0, y: dy > 0 ? 1 : -1 };
-    touchStart = { x: t.clientX, y: t.clientY };
-    e.preventDefault();
-  }, { passive: false });
-  board.addEventListener('touchend', () => { touchStart = null; }, { passive: true });
+  startBtn.addEventListener('click', () => { ensureAudio(); start(); });
 
   fitCanvas();
-  reset();
   draw();
 })();
 </script>
