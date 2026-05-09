@@ -107,23 +107,35 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html">← Menu</a>
-      <h1>Snake</h1>
+      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
+      <h1 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h1>
     </div>
-    <div class="score">Score <b id="score">0</b> · Best <b id="best">0</b></div>
+    <div class="score">
+      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      ·
+      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
+    </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title">Snake</h2>
-      <p id="msg">Swipe to steer. Arrow keys on desktop.</p>
-      <button id="startBtn">Play</button>
+      <h2 id="title" data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h2>
+      <p id="msg"
+         data-ru="Свайп — поворот. Стрелки на компьютере."
+         data-lv="Velc, lai grieztu. Bultas datorā."
+         data-en="Swipe to steer. Arrow keys on desktop.">Swipe to steer. Arrow keys on desktop.</p>
+      <button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
     </div>
   </div>
 
-  <div class="hint">Tip: swipe anywhere on the board to change direction.</div>
+  <div class="hint"
+       data-ru="Совет: свайп в любом месте поля."
+       data-lv="Padoms: velc jebkur uz lauka."
+       data-en="Tip: swipe anywhere on the board.">Tip: swipe anywhere on the board.</div>
 </div>
+
+<script src="lang.js"></script>
 
 <script>
 (() => {
@@ -198,9 +210,17 @@
 
   function die() {
     alive = false;
-    titleEl.textContent = 'Game Over';
-    msgEl.textContent = `Score ${score}. Tap Play to try again.`;
-    startBtn.textContent = 'Play again';
+    titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
+    // Sneak-in #1: 25% chance the result line gets a Spanish celebratory cheer
+    // when you matched or beat your best score; otherwise the bilingual recap.
+    const beatBest = score > 0 && score >= best;
+    const baseMsg = Lang.t(
+      `Счёт ${score}. Жми Старт.`,
+      `Rezultāts ${score}. Spied Sākt.`,
+      `Score ${score}. Tap Start to try again.`
+    );
+    msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
+    startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
     overlay.classList.add('show');
   }
 

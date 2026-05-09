@@ -32,6 +32,30 @@
   h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: 0.3px; }
   h1 .accent { color: #4ade80; }
   header p { margin: 0; color: var(--muted); font-size: 14px; }
+  /* Language switcher */
+  .lang-switch {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .lang-btn {
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lang-btn.active {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.4);
+    background: rgba(74, 222, 128, 0.08);
+  }
+  .lang-btn:active { transform: translateY(1px); }
   .grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -80,35 +104,66 @@
 </head>
 <body>
 <div class="app">
+  <div id="lang-switch"></div>
   <header>
     <h1>play<span class="accent">Ground</span></h1>
-    <p>Pick a game. Works on phone and desktop.</p>
+    <p id="tagline">Pick a game. Works on phone and desktop.</p>
   </header>
 
   <div class="grid">
     <a class="card" href="snake.html">
       <div class="icon snake">S</div>
-      <h2>Snake</h2>
-      <p>Swipe to steer. Eat. Don't bite yourself.</p>
+      <h2 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h2>
+      <p data-ru="Свайп — поворот. Не кусай хвост."
+         data-lv="Velc, lai grieztu. Neiekod sevī."
+         data-en="Swipe to steer. Don't bite yourself.">Swipe to steer. Don't bite yourself.</p>
     </a>
     <a class="card" href="tetris.html">
       <div class="icon tetris">T</div>
-      <h2>Tetris</h2>
-      <p>On-screen buttons. Clear lines to level up.</p>
+      <h2 data-ru="Тетрис" data-lv="Tetris" data-tr-mode="base">Tetris</h2>
+      <p data-ru="Кнопки на экране. Собирай линии."
+         data-lv="Pogas uz ekrāna. Veido līnijas."
+         data-en="On-screen buttons. Clear lines to level up.">On-screen buttons. Clear lines to level up.</p>
     </a>
     <a class="card" href="breakout.html">
       <div class="icon breakout">B</div>
-      <h2>Breakout</h2>
-      <p>Drag to slide the paddle. Smash every brick.</p>
+      <h2 data-ru="Арканоид" data-lv="Breakout" data-tr-mode="base">Breakout</h2>
+      <p data-ru="Двигай ракетку. Разбей все кирпичи."
+         data-lv="Velc plātni. Sasit visus ķieģeļus."
+         data-en="Drag the paddle. Smash every brick.">Drag the paddle. Smash every brick.</p>
     </a>
     <a class="card" href="table-tennis.html">
       <div class="icon tennis">TT</div>
-      <h2>Table Tennis</h2>
-      <p>Move your paddle. Beat the AI. First to 7 wins.</p>
+      <h2 data-ru="Пинг-понг" data-lv="Galda teniss" data-tr-mode="base">Table Tennis</h2>
+      <p data-ru="Двигай ракетку. Победа — 7 очков."
+         data-lv="Kustini plātni. Pirmais līdz 7 uzvar."
+         data-en="Move your paddle. First to 7 wins.">Move your paddle. First to 7 wins.</p>
     </a>
   </div>
 
-  <footer>Made for the playground repo.</footer>
+  <footer>Made for the playGround repo · <span id="footer-es">¡A jugar!</span></footer>
 </div>
+<script src="lang.js"></script>
+<script>
+  // Render the RU/LV switcher.
+  Lang.renderSwitcher(document.getElementById('lang-switch'));
+
+  // Hero tagline — 60% bilingual, 25% Spanish sneak-in, 15% English-only motivational.
+  (function rotateTagline() {
+    var el = document.getElementById('tagline');
+    var r = Math.random();
+    if (r < 0.25) {
+      el.textContent = Lang.esTagline();
+    } else if (r < 0.40) {
+      el.textContent = 'Tap a game. Have fun. Learn a bit.';
+    } else {
+      el.textContent = Lang.t(
+        'Выбери игру. На телефоне и компьютере.',
+        'Izvēlies spēli. Telefonā un datorā.',
+        'Pick a game. Phone or desktop.'
+      );
+    }
+  })();
+</script>
 </body>
 </html>

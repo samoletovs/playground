@@ -139,7 +139,7 @@
 <body>
 <div class="app">
   <div class="topbar">
-    <a class="back-btn" href="index.html">← Back</a>
+    <a class="back-btn" href="index.html" data-ru="← Назад" data-lv="← Atpakaļ" data-tr-mode="base">← Back</a>
     <div class="scoreboard">
       <span class="score-player" id="scorePlayer">0</span>
       <span class="score-sep">:</span>
@@ -148,30 +148,37 @@
     <div style="width:60px"></div>
   </div>
   <div class="labels">
-    <span>You</span>
-    <span>AI</span>
+    <span data-ru="Ты" data-lv="Tu" data-en="You">You</span>
+    <span data-ru="ИИ" data-lv="AI" data-en="AI">AI</span>
   </div>
   <canvas id="canvas"></canvas>
-  <div class="hint" id="hint">Move mouse or drag to control your paddle</div>
+  <div class="hint" id="hint"
+       data-ru="Двигай мышь или тяни ракетку"
+       data-lv="Kustini peli vai velc plātni"
+       data-en="Move mouse or drag your paddle">Move mouse or drag your paddle</div>
 </div>
 
 <div class="overlay" id="overlay">
-  <h2>🏓 Table Tennis</h2>
-  <p>First to 7 wins. Move your paddle to keep the ball in play.</p>
+  <h2 data-ru="🏓 Пинг-понг" data-lv="🏓 Galda teniss" data-tr-mode="base">🏓 Table Tennis</h2>
+  <p data-ru="Первый до 7 очков побеждает. Двигай ракетку."
+     data-lv="Pirmais līdz 7 punktiem uzvar. Kustini plātni."
+     data-en="First to 7 wins. Move your paddle.">First to 7 wins. Move your paddle.</p>
   <div class="difficulty">
-    <button class="diff-btn" data-level="easy">Easy</button>
-    <button class="diff-btn active" data-level="medium">Medium</button>
-    <button class="diff-btn" data-level="hard">Hard</button>
+    <button class="diff-btn" data-level="easy" data-ru="Лёгко" data-lv="Viegli" data-en="Easy">Easy</button>
+    <button class="diff-btn active" data-level="medium" data-ru="Средне" data-lv="Vidēji" data-en="Medium">Medium</button>
+    <button class="diff-btn" data-level="hard" data-ru="Сложно" data-lv="Grūti" data-en="Hard">Hard</button>
   </div>
-  <button class="btn" id="startBtn">Play</button>
+  <button class="btn" id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
 </div>
 
 <div class="overlay" id="endOverlay" style="display:none">
   <h2 id="endTitle"></h2>
   <p id="endMsg"></p>
-  <button class="btn" id="rematchBtn">Play Again</button>
-  <a class="btn secondary" href="index.html">Menu</a>
+  <button class="btn" id="rematchBtn" data-ru="Снова" data-lv="Vēlreiz" data-en="Again">Again</button>
+  <a class="btn secondary" href="index.html" data-ru="Меню" data-lv="Izvēlne" data-en="Menu">Menu</a>
 </div>
+
+<script src="lang.js"></script>
 
 <script>
 const canvas = document.getElementById('canvas');
@@ -280,12 +287,25 @@ function endGame(winner) {
   const title = document.getElementById('endTitle');
   const msg = document.getElementById('endMsg');
   if (winner === 'player') {
-    title.textContent = 'You Win! 🎉';
-    msg.textContent = `${scorePlayer} : ${scoreAI} — Great match!`;
+    // Spanish sneak-in: 35% chance of an ES cheer instead of the bilingual title.
+    title.textContent = Lang.pickEs(
+      `¡${Lang.esWin().replace(/^¡|!$/g, '')}! 🎉`,
+      Lang.t('Победа!', 'Uzvara!', 'You win!') + ' 🎉',
+      0.35
+    );
+    msg.textContent = Lang.t(
+      `${scorePlayer} : ${scoreAI} — Отличный матч!`,
+      `${scorePlayer} : ${scoreAI} — Lielisks māčs!`,
+      `${scorePlayer} : ${scoreAI} — Great match!`
+    );
     sounds.win();
   } else {
-    title.textContent = 'AI Wins 🤖';
-    msg.textContent = `${scorePlayer} : ${scoreAI} — Better luck next time!`;
+    title.textContent = Lang.t('ИИ победил', 'AI uzvarēja', 'AI wins') + ' 🤖';
+    msg.textContent = Lang.t(
+      `${scorePlayer} : ${scoreAI} — в следующий раз повезёт!`,
+      `${scorePlayer} : ${scoreAI} — nākamreiz īsi!`,
+      `${scorePlayer} : ${scoreAI} — Better luck next time!`
+    );
     sounds.lose();
   }
   endOverlay.style.display = 'flex';
@@ -486,7 +506,11 @@ window.addEventListener('resize', () => {
 
 // Update hint for mobile
 if ('ontouchstart' in window) {
-  hintEl.textContent = 'Drag to move your paddle (left side)';
+  hintEl.textContent = Lang.t(
+    'Тяни ракетку (слева)',
+    'Velc savu plātni (kreisă pusē)',
+    'Drag your paddle (left side)'
+  );
 }
 
 resize();

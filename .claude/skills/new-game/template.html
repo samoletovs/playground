@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <meta name="theme-color" content="#0b1020" />
-<title>{{TITLE}}</title>
+<title>{{TITLE_EN}}</title>
 <style>
   :root {
     --bg: #0b1020;
@@ -102,23 +102,29 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html">← Menu</a>
-      <h1>{{TITLE}}</h1>
+      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
+      <h1 data-ru="{{TITLE_RU}}" data-lv="{{TITLE_LV}}" data-tr-mode="base">{{TITLE_EN}}</h1>
     </div>
-    <div class="score">Score <b id="score">0</b> · Best <b id="best">0</b></div>
+    <div class="score">
+      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      ·
+      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
+    </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title">{{TITLE}}</h2>
-      <p id="msg">{{HINT}}</p>
-      <button id="startBtn">Play</button>
+      <h2 id="title" data-ru="{{TITLE_RU}}" data-lv="{{TITLE_LV}}" data-tr-mode="base">{{TITLE_EN}}</h2>
+      <p id="msg" data-ru="{{HINT_RU}}" data-lv="{{HINT_LV}}" data-en="{{HINT_EN}}">{{HINT_EN}}</p>
+      <button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
     </div>
   </div>
 
-  <div class="hint">{{HINT}}</div>
+  <div class="hint" data-ru="{{HINT_RU}}" data-lv="{{HINT_LV}}" data-en="{{HINT_EN}}">{{HINT_EN}}</div>
 </div>
+
+<script src="lang.js"></script>
 
 <script>
 (() => {
@@ -169,9 +175,16 @@
 
   function gameOver() {
     alive = false;
-    titleEl.textContent = 'Game Over';
-    msgEl.textContent = `Score ${score}. Tap Play to try again.`;
-    startBtn.textContent = 'Play again';
+    titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
+    const beatBest = score > 0 && score >= best;
+    const baseMsg = Lang.t(
+      `Счёт ${score}. Жми Старт.`,
+      `Rezultāts ${score}. Spied Sākt.`,
+      `Score ${score}. Tap Start to try again.`
+    );
+    // Spanish sneak-in: 50% chance of an ES cheer when you beat your best.
+    msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
+    startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
     overlay.classList.add('show');
   }
 

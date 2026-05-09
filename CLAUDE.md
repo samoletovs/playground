@@ -42,6 +42,71 @@ These are load-bearing for the "feels right on a phone" experience — match the
 3. Add a card to `index.html` (the `<a class="card">` link plus an `.icon.<name>` color rule).
 4. Open a PR — `.github/workflows/auto-merge.yml` squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **There is no human review and no CI gate, so anything that lands ships immediately to Pages.** Test the file in a browser before pushing.
 
+## Language model — RU/LV switcher, English always paired, Spanish sneak-ins
+
+The kids are 11 (boy) and 9 (girl). They speak **Russian** and **Latvian** fluently (no need to learn either), are **learning English** as the top priority, and are **picking up Spanish** as a secondary target. The site is structured around this:
+
+- **Top switcher**: 🇷🇺 RU ⇄ 🇱🇻 LV picks the *base* language. State persists in `localStorage` (`playground.base`). The switcher lives in `index.html`; every game inherits the choice automatically.
+- **English is always paired with the base** on every visible UI string — this is the constant English-learning workhorse. Format: `<base> / <english>` (e.g. `Старт / Start`, `Sākt / Start`, `Счёт / Score`).
+- **Spanish sneaks in 1–3 places per text-bearing game** as cosmetic delight — never on buttons or score labels. Acceptable sneak-in spots:
+  - Celebration toasts on win / new high score: `¡Excelente!`, `¡Increíble!`
+  - Hero/tagline rotation: ~25% chance the page tagline is in Spanish (`¡Juega y aprende!`)
+  - Sprite labels: when an item appears, ~30% chance to flash its Spanish name for ~2 sec (`🐕 perro`, `🌞 sol`)
+  - Number / color call-outs: `1 — uno`, `2 — dos` in counting games
+
+### How to use the helper
+
+Every game must include the shared helper near the top of `<body>`:
+
+```html
+<script src="/lang.js"></script>
+```
+
+For static HTML strings, use `data-ru/data-lv/data-en` attributes — `lang.js` swaps them on load:
+
+```html
+<button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
+<div data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</div>
+<h1 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h1>  <!-- base only -->
+```
+
+For dynamic strings set in JS, use `Lang.t(ru, lv, en)`:
+
+```js
+titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
+startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+
+// Spanish sneak-in (25% chance) — replaces the win toast with a Spanish phrase.
+toast(Lang.pickEs('¡Excelente!', Lang.t('Победа!', 'Uzvara!', 'You win!')));
+toast(Lang.esWin());                 // always Spanish: random win phrase
+toast(Lang.esWord('🐕'));            // 'perro'
+```
+
+### Rules every text-bearing game must follow
+
+1. Add `<script src="/lang.js"></script>` once.
+2. **Never hardcode visible strings.** Use `data-ru/data-lv/data-en` for static, `Lang.t(...)` for dynamic.
+3. **Never crowd the UI with a third language.** Two-language max on buttons/scores/messages (base + EN).
+4. **Sneak Spanish into 1–3 places** per game — celebrations, taglines, occasional sprite labels, ★★ mini-game modes. Don't sprinkle it everywhere.
+5. Proper nouns (game name in `<h1>`, sprite names like "Snake") may use `data-tr-mode="base"` to show base only and skip the `/ English` suffix.
+
+## Genre cheatsheet (Claude-facing, kids never see this)
+
+When a kid says just "make a game", offer **3 picks from different categories**, not three arcade clones. Categories with examples:
+
+- **Classic arcade** — Pac-style maze, Frogger, Space Invaders, Asteroids, Pong variants
+- **Sports** — football penalty kicks, basketball arcade shooter, tennis, ski slalom, BMX dodge
+- **Creative** — paint app, doll dress-up (drag-drop wardrobe), character creator, pixel-art editor, music maker (8-step sequencer), photo-booth filters
+- **Puzzle** — word match (multilingual), 2048 clone, sliding picture puzzle, memory pairs, Sudoku-lite
+- **Adventure / story** — choose-your-own-adventure, tiny RPG with map and 3 monsters, fishing game, virtual pet, garden grower
+- **Multiplayer same-screen** — air-hockey 2-thumb, tug-of-war button mash, quiz duel, drawing telephone
+- **Language-learning** — flashcard duel (RU/LV → EN ★, EN ↔ ES ★★), color-name catcher, number-typing rocket
+
+## Audio + 2-player rules
+
+- **Audio**: mute by default, unmute on first user gesture (browser autoplay rules). For now, generate sounds inline with `AudioContext` oscillators — no audio file dependencies. A `tone.js` chiptune helper is planned but not yet shipped.
+- **2-player same-screen welcome**: pong-style, air-hockey, tug-of-war button-mash, drawing telephone are all great. The default is single-player *or* 2-player same-screen — both work for two siblings sharing one phone.
+
 ## Audience note
 
-The repo is built with and for a child. Default to single-player, forgiving mechanics, and obvious on-screen controls over keyboard-only schemes. When uncertain about scope, prefer the simpler classic version of a game over a feature-rich one.
+The repo is built with and for two kids (11 and 9). Default to forgiving mechanics, obvious on-screen controls, single-player or 2-player same-screen. When uncertain about scope, prefer the simpler classic version of a game over a feature-rich one. Variety matters — when picking what to build, lean toward genres the kids haven't tried yet (see the Genre cheatsheet above).

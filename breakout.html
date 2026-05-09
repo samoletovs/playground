@@ -104,26 +104,38 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html">← Menu</a>
-      <h1>Breakout</h1>
+      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
+      <h1 data-ru="Арканоид" data-lv="Breakout" data-tr-mode="base">Breakout</h1>
     </div>
     <div class="score">
-      Score <b id="score">0</b> · Lives <b id="lives">3</b><br>
-      Level <b id="level">1</b> · Best <b id="best">0</b>
+      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      ·
+      <span data-ru="Жизни" data-lv="Dzīvības" data-en="Lives">Lives</span> <b id="lives">3</b><br>
+      <span data-ru="Уровень" data-lv="Līmenis" data-en="Level">Level</span> <b id="level">1</b>
+      ·
+      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
     </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title">Breakout</h2>
-      <p id="msg">Drag to move the paddle. Arrow keys on desktop.</p>
-      <button id="startBtn">Play</button>
+      <h2 id="title" data-ru="Арканоид" data-lv="Breakout" data-tr-mode="base">Breakout</h2>
+      <p id="msg"
+         data-ru="Тяни ракетку. Стрелки на компьютере."
+         data-lv="Velc plātni. Bultas datorā."
+         data-en="Drag the paddle. Arrow keys on desktop.">Drag the paddle. Arrow keys on desktop.</p>
+      <button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
     </div>
   </div>
 
-  <div class="hint">Tip: drag anywhere on the board to slide the paddle.</div>
+  <div class="hint"
+       data-ru="Совет: тяни в любом месте поля."
+       data-lv="Padoms: velc jebkur uz lauka."
+       data-en="Tip: drag anywhere on the board.">Tip: drag anywhere on the board.</div>
 </div>
+
+<script src="lang.js"></script>
 
 <script>
 (() => {
@@ -236,9 +248,16 @@
       localStorage.setItem('breakout.best', String(best));
       bestEl.textContent = best;
     }
-    titleEl.textContent = 'Game Over';
-    msgEl.textContent = `Score ${score}. Tap Play to try again.`;
-    startBtn.textContent = 'Play again';
+    titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
+    const beatBest = score > 0 && score >= best;
+    const baseMsg = Lang.t(
+      `Счёт ${score}. Жми Старт.`,
+      `Rezultāts ${score}. Spied Sākt.`,
+      `Score ${score}. Tap Start to try again.`
+    );
+    // Spanish sneak-in on a new high score.
+    msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
+    startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
     overlay.classList.add('show');
   }
 

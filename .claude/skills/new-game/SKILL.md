@@ -12,9 +12,11 @@ Scaffold a new game in the playground repo. The output is a runnable but empty s
 If the user has not already supplied them in the invocation, ask once before scaffolding:
 
 1. **Slug** — kebab-case, used as the file name and `localStorage` key prefix (e.g. `memory-match`, `tic-tac-toe`).
-2. **Title** — display title (e.g. "Memory Match").
-3. **Tagline** — one short line for the menu card (e.g. "Flip cards. Match the pairs.").
-4. **Accent color** — pick one from this list, avoiding colors already used by other games on the menu:
+2. **Title** — display title in **English** (e.g. "Memory Match").
+3. **Title translations** — Russian and Latvian forms of the title (e.g. RU `"Найди пару"`, LV `"Atrodi pāri"`). Required because every game must work with the RU/LV switcher.
+4. **Tagline** — one short line for the menu card in **English** (e.g. "Flip cards. Match the pairs.").
+5. **Tagline translations** — Russian and Latvian forms of the tagline.
+6. **Accent color** — pick one from this list, avoiding colors already used by other games on the menu:
    - green `#4ade80`
    - blue `#60a5fa`
    - amber `#f59e0b`
@@ -23,10 +25,11 @@ If the user has not already supplied them in the invocation, ask once before sca
    - violet `#a78bfa`
    - lime `#84cc16`
    - pink `#f472b6`
-5. **Icon letters** — 1–2 chars for the menu card icon (e.g. "MM" for Memory Match).
-6. **Hint** — one line shown on the start overlay and under the board (e.g. "Tap a card to flip it.").
+7. **Icon letters** — 1–2 chars for the menu card icon (e.g. "MM" for Memory Match).
+8. **Hint** — one line shown on the start overlay and under the board, in **English** (e.g. "Tap a card to flip it.").
+9. **Hint translations** — Russian and Latvian forms of the hint.
 
-If the user gives you enough to infer some of these, do — only ask about the truly missing pieces.
+If the user gives you enough to infer some of these, do — only ask about the truly missing pieces. For Russian and Latvian translations, you may produce them yourself if the user is fine with that — just confirm once.
 
 ## Steps
 
@@ -35,19 +38,23 @@ If the user gives you enough to infer some of these, do — only ask about the t
    git checkout main && git pull origin main && git checkout -b claude/<slug>
    ```
 2. Read `.claude/skills/new-game/template.html` and write `<slug>.html` at the repo root, replacing every placeholder:
-   - `{{TITLE}}` → display title
+   - `{{TITLE_EN}}` → English display title
+   - `{{TITLE_RU}}` → Russian display title
+   - `{{TITLE_LV}}` → Latvian display title
+   - `{{HINT_EN}}` → English hint
+   - `{{HINT_RU}}` → Russian hint
+   - `{{HINT_LV}}` → Latvian hint
    - `{{SLUG}}` → kebab-case slug
    - `{{ACCENT}}` → accent hex
    - `{{ACCENT_RGB}}` → the accent's `r, g, b` triple (e.g. `74, 222, 128` for `#4ade80`)
-   - `{{HINT}}` → control hint line
 3. Edit `index.html`:
    - Add `.icon.<slug-as-css-class> { background: rgba({{ACCENT_RGB}}, 0.18); color: {{ACCENT}}; }` next to the existing `.icon.<name>` rules. Use the kebab slug as the CSS class.
-   - Append a card inside the `.grid` container, matching the existing format:
+   - Append a card inside the `.grid` container, matching the existing format (note the `data-ru/data-lv` attributes — every menu card must support the switcher):
      ```html
      <a class="card" href="<slug>.html">
        <div class="icon <slug>">{{ICON_LETTERS}}</div>
-       <h2>{{TITLE}}</h2>
-       <p>{{TAGLINE}}</p>
+       <h2 data-ru="{{TITLE_RU}}" data-lv="{{TITLE_LV}}" data-tr-mode="base">{{TITLE_EN}}</h2>
+       <p data-ru="{{TAGLINE_RU}}" data-lv="{{TAGLINE_LV}}" data-en="{{TAGLINE_EN}}">{{TAGLINE_EN}}</p>
      </a>
      ```
 4. Commit with message `Add <Title> game scaffold` and push: `git push -u origin claude/<slug>`.
@@ -67,7 +74,17 @@ Don't regress these when filling in gameplay later:
 - `100dvh` layout, safe-area-inset padding, `overflow: hidden` on body, no tap highlight, no text selection.
 - `.board-wrap` with `touch-action: none`.
 - Canvas backing-store scaled by `devicePixelRatio` in `fitCanvas()`.
-- A `← Menu` back link in the header.
+- A `← Menu` back link in the header (already bilingualized via `data-ru/data-lv`).
 - Overlay-gated start: nothing runs until the user taps Play.
 - Best score persisted to `localStorage` under `<slug>.best`.
 - Both pointer and keyboard listeners stubbed.
+- **`<script src="lang.js"></script>` is included.** Every visible string uses `data-ru/data-lv/data-en` or `Lang.t(ru, lv, en)`. See `CLAUDE.md → Language model` for full rules.
+
+## When you fill in gameplay later
+
+Once the user describes the game, when you go to add visible strings:
+
+- Hardcoded HTML strings → `data-ru/data-lv/data-en` attributes on the element.
+- Strings set in JS → `Lang.t('ru text', 'lv text', 'english text')` returns `"<base> / English"`.
+- Sneak Spanish into 1–3 places: a `Lang.esWin()` toast on a new high score, a `Lang.esWord('🐕')` flash when a sprite spawns, an occasional `Lang.esTagline()` in the hint area. Don't sprinkle Spanish on buttons, scores, or core UI — keep it as delight.
+- Read CLAUDE.md's Language model section before adding text-heavy features.
