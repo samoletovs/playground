@@ -18,8 +18,9 @@ Then open `http://<host-ip>:8080/` from the phone. For the deployed site, append
 
 ## Architecture
 
-- `index.html` is the menu. It's a flat grid of `<a class="card">` links — one per game — each paired with an `.icon.<name>` CSS class that only sets a tinted background color. Adding a game means adding both.
-- Each `<game>.html` is a complete, dependency-free document: inline `<style>`, inline `<script>`, no imports, no shared JS or CSS files. Patterns (CSS variables, header layout, overlay element, canvas sizing) are duplicated by design — keep games independent so they can't break each other.
+- `index.html` is the menu. It's a flat grid of `<a class="card">` links — one per game — each paired with an `.icon.<name>` CSS class that only sets a tinted background color. Adding a game means adding both. The menu also hosts the global 🇷🇺 RU ⇄ 🇱🇻 LV switcher.
+- `lang.js` is the **one shared file** every text-bearing game loads (`<script src="lang.js"></script>`). It exposes `window.Lang` for translation and Spanish sneak-ins. See the *Language model* section below for the full API.
+- Each `<game>.html` is otherwise a complete, dependency-free document: inline `<style>`, inline `<script>`, no other imports, no other shared JS or CSS files. Patterns (CSS variables, header layout, overlay element, canvas sizing) are duplicated by design — keep games independent so they can't break each other.
 - No router, no SPA. Navigation is plain `<a href="other.html">`.
 
 ## Conventions every game follows
@@ -34,13 +35,13 @@ These are load-bearing for the "feels right on a phone" experience — match the
 - **Start gate**: overlay div with a Play button, shown initially and on game over. Game logic doesn't run until the user taps Play.
 - **Controls**: always provide both touch and keyboard. Touch is the primary path — swipe gestures (Snake), drag (Breakout), or on-screen buttons (Tetris). Keyboard mirrors with arrows / WASD / space.
 - **Best score**: persist to `localStorage` under the key `<game>.best` (e.g. `snake.best`, `tetris.best`).
+- **Bilingual UI**: include `<script src="lang.js"></script>` and use `data-en/data-ru/data-lv` attributes (or `Lang.t(ru, lv, en)` for dynamic strings) on every visible string. See the *Language model* section below.
 
 ## Adding a new game
 
-1. Branch from `main` as `claude/<game-name>`.
-2. Create `<game-name>.html` at the repo root following the conventions above. The cleanest starting point is to copy an existing game and rip out the game-specific logic.
-3. Add a card to `index.html` (the `<a class="card">` link plus an `.icon.<name>` color rule).
-4. Open a PR — `.github/workflows/auto-merge.yml` squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **There is no human review and no CI gate, so anything that lands ships immediately to Pages.** Test the file in a browser before pushing.
+Use the `new-game` skill (`.claude/skills/new-game/`) — it scaffolds a runnable empty shell with the bilingual conventions baked in, branches, commits, and opens a PR. The auto-merge workflow (`.github/workflows/auto-merge.yml`) then squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically, deletes the branch, and ships to Pages. **There is no human review and no CI gate, so anything that lands ships immediately.** Test the file in a browser before pushing.
+
+If you're editing manually instead of using the skill: branch from `main` as `claude/<game-name>`, create `<game-name>.html` at the repo root (copy an existing game as a starting point), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, and open a PR.
 
 ## Language model — English primary, RU/LV helper, Spanish sneak-ins
 
@@ -69,7 +70,7 @@ Score  счёт   12       ← labels follow the same pattern
 Every text-bearing game must include the shared helper near the top of `<body>`:
 
 ```html
-<script src="/lang.js"></script>
+<script src="lang.js"></script>
 ```
 
 For static HTML strings, use `data-en/data-ru/data-lv` attributes — `lang.js` swaps them on load, rendering English as the visible text plus a muted helper span:
@@ -101,7 +102,7 @@ toast(Lang.esWord('🐕'));            // 'perro'
 
 ### Rules every text-bearing game must follow
 
-1. Add `<script src="/lang.js"></script>` once.
+1. Add `<script src="lang.js"></script>` once.
 2. **Never hardcode visible strings.** Use `data-en/data-ru/data-lv` for static, `Lang.t(...)` for dynamic.
 3. **English is always the primary visible text** — never RU or LV alone in pair mode.
 4. **Never crowd the UI with a third language.** Two-language max on buttons/scores/messages (English + helper).
