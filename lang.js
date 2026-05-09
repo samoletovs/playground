@@ -40,8 +40,14 @@
 (() => {
   const KEY = 'playground.base';
   const VALID = ['ru', 'lv'];
-  let base = localStorage.getItem(KEY);
-  if (!VALID.includes(base)) base = 'ru';
+  // Defensive: localStorage can throw in iOS Safari Private Mode or when storage
+  // is disabled. Fall back to 'ru' (the default) so window.Lang still registers
+  // and games keep working.
+  let base = 'ru';
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (VALID.includes(stored)) base = stored;
+  } catch (_) { /* localStorage unavailable; stay on default */ }
 
   // Spanish sneak-in vocabulary — emoji → ES word
   const ES_WORDS = {
@@ -112,7 +118,7 @@
 
     set(code) {
       if (!VALID.includes(code) || code === base) return;
-      localStorage.setItem(KEY, code);
+      try { localStorage.setItem(KEY, code); } catch (_) { /* ignore */ }
       location.reload();
     },
 

@@ -209,8 +209,17 @@ let difficulty = 'medium';
 let touchStartY = null;
 let touchPaddleY = null;
 
-// Audio
-const audio = new (window.AudioContext || window.webkitAudioContext)();
+// Audio (lazy-init: iOS Safari blocks AudioContext until first user gesture)
+let audio = null;
+function ensureAudio() {
+  if (audio) {
+    if (audio.state === 'suspended') audio.resume().catch(() => {});
+    return;
+  }
+  try {
+    audio = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (_) { audio = null; }
+}
 
 function beep(freq, dur, vol = 0.3, type = 'square') {
   if (!audio) return;
@@ -486,12 +495,14 @@ document.querySelectorAll('.diff-btn').forEach(btn => {
 });
 
 document.getElementById('startBtn').addEventListener('click', () => {
+  ensureAudio();
   overlay.style.display = 'none';
   resize();
   startGame();
 });
 
 document.getElementById('rematchBtn').addEventListener('click', () => {
+  ensureAudio();
   endOverlay.style.display = 'none';
   resize();
   startGame();
