@@ -72,13 +72,26 @@
   .overlay.show { display: flex; }
   .overlay h2 { margin: 0; font-size: 22px; }
   .overlay p { margin: 0; color: var(--muted); font-size: 14px; max-width: 280px; }
-  button {
+  .mode-row { display: flex; gap: 8px; }
+  .mode-opt {
+    appearance: none; border: 2px solid rgba(255,255,255,0.12);
+    background: transparent; color: var(--muted);
+    font-weight: 600; font-size: 14px;
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .mode-opt.active {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(34,211,238,0.12);
+  }
+  .mode-opt:active { transform: translateY(1px); }
+  button.start {
     appearance: none; border: none;
     background: var(--accent); color: #04162e;
     font-weight: 700; font-size: 16px;
     padding: 12px 28px; border-radius: 999px; cursor: pointer;
   }
-  button:active { transform: translateY(1px); }
+  button.start:active { transform: translateY(1px); }
   .hint { color: var(--muted); font-size: 12px; text-align: center; max-width: 420px; }
 </style>
 </head>
@@ -99,23 +112,30 @@
     <div class="overlay show" id="overlay">
       <h2 id="ovTitle">Air Hockey</h2>
       <p id="ovMsg" data-en="Drag your paddle · First to 5 wins!" data-ru="Тяни клюшку · Первый до 5 побеждает!" data-lv="Velc nūju · Pirmais līdz 5 uzvar!">Drag your paddle · First to 5 wins!</p>
-      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      <div class="mode-row">
+        <button class="mode-opt active" id="btn1p" data-en="🤖 vs Bot" data-ru="🤖 vs Бот" data-lv="🤖 vs Bots">🤖 vs Bot</button>
+        <button class="mode-opt" id="btn2p" data-en="👥 2 Players" data-ru="👥 2 игрока" data-lv="👥 2 spēlētāji">👥 2 Players</button>
+      </div>
+      <button class="start" id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
     </div>
   </div>
 
-  <div class="hint" data-en="🔵 bottom half · 🔴 top half" data-ru="🔵 нижняя половина · 🔴 верхняя половина" data-lv="🔵 apakšpuse · 🔴 augšpuse">🔵 bottom half · 🔴 top half</div>
+  <div class="hint" id="hint" data-en="🔵 bottom half · 🔴 top half" data-ru="🔵 нижняя половина · 🔴 верхняя половина" data-lv="🔵 apakšpuse · 🔴 augšpuse">🔵 bottom half · 🔴 top half</div>
 </div>
 
 <script src="lang.js"></script>
 <script>
 (() => {
-  const canvas  = document.getElementById('game');
-  const ctx     = canvas.getContext('2d');
-  const board   = document.getElementById('board');
-  const overlay = document.getElementById('overlay');
+  const canvas   = document.getElementById('game');
+  const ctx      = canvas.getContext('2d');
+  const board    = document.getElementById('board');
+  const overlay  = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
+  const btn1p    = document.getElementById('btn1p');
+  const btn2p    = document.getElementById('btn2p');
   const ovTitle  = document.getElementById('ovTitle');
   const ovMsg    = document.getElementById('ovMsg');
+  const hintEl   = document.getElementById('hint');
   const s1El     = document.getElementById('s1');
   const s2El     = document.getElementById('s2');
 
@@ -123,17 +143,21 @@
   let alive = false, paused = false, raf;
   let W = 1, H = 1;
   let scores = [0, 0];
+  let aiMode = true; // default: vs bot
 
   const puck = { x: 0, y: 0, vx: 0, vy: 0, r: 1 };
-  // [0] = P1 bottom (cyan), [1] = P2 top (red)
   const paddles = [
-    { x: 0, y: 0, vx: 0, vy: 0, r: 1 },
-    { x: 0, y: 0, vx: 0, vy: 0, r: 1 },
+    { x: 0, y: 0, vx: 0, vy: 0, r: 1 }, // P1 bottom (cyan)
+    { x: 0, y: 0, vx: 0, vy: 0, r: 1 }, // P2 top (red / bot)
   ];
-  const ptrs = new Map(); // pointerId → paddle index
+  const ptrs = new Map();
   const keys = {};
 
-  // ── Audio ───────────────────────────────────────────────────────────────────
+  // ── Mode toggle ──────────────────────────────────────────────────────────────
+  btn1p.addEventListener('click', () => { aiMode = true;  btn1p.classList.add('active'); btn2p.classList.remove('active'); });
+  btn2p.addEventListener('click', () => { aiMode = false; btn2p.classList.add('active'); btn1p.classList.remove('active'); });
+
+  // ── Audio ────────────────────────────────────────────────────────────────────
   let audioCtx;
   function ac() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -149,15 +173,15 @@
       o.start(); o.stop(c.currentTime + dur);
     } catch (_) {}
   }
-  function sndHit()  { tone(300, 0.07, 0.22); }
+  function sndHit()  { tone(340, 0.07, 0.25); }
   function sndWall() { tone(160, 0.05, 0.12); }
   function sndGoal(player) {
     const f = player === 0 ? 660 : 440;
-    tone(f,       0.15, 0.28, 'sine');
-    setTimeout(() => tone(f * 1.25, 0.22, 0.22, 'sine'), 130);
+    tone(f, 0.15, 0.30, 'sine');
+    setTimeout(() => tone(f * 1.25, 0.22, 0.24, 'sine'), 130);
   }
 
-  // ── Layout ──────────────────────────────────────────────────────────────────
+  // ── Layout ───────────────────────────────────────────────────────────────────
   function fitCanvas() {
     const rect = board.getBoundingClientRect();
     const dpr  = window.devicePixelRatio || 1;
@@ -165,26 +189,25 @@
     canvas.height = Math.floor(rect.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     W = rect.width; H = rect.height;
-    puck.r      = Math.min(W, H) * 0.042;
+    puck.r       = Math.min(W, H) * 0.042;
     paddles[0].r = paddles[1].r = Math.min(W, H) * 0.075;
     if (!alive) draw();
   }
   window.addEventListener('resize', fitCanvas);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function goalBounds() {
     const hw = W * 0.21;
     return { x1: W / 2 - hw, x2: W / 2 + hw };
   }
 
-  // ── Reset / init ─────────────────────────────────────────────────────────────
+  // ── Reset ────────────────────────────────────────────────────────────────────
   function resetPuck(dir) {
     puck.x = W / 2; puck.y = H / 2;
-    const spd   = Math.min(W, H) * 0.005;
-    const angle = (Math.random() - 0.5) * 0.55;
+    const spd   = Math.min(W, H) * 0.008;
+    const angle = (Math.random() - 0.5) * 0.6;
     puck.vx = Math.sin(angle) * spd;
-    puck.vy = dir * Math.cos(angle) * spd; // dir: +1 down, -1 up
+    puck.vy = dir * Math.cos(angle) * spd;
   }
 
   function initGame() {
@@ -195,6 +218,17 @@
     paddles[0].vx = paddles[0].vy = paddles[1].vx = paddles[1].vy = 0;
     resetPuck(Math.random() < 0.5 ? 1 : -1);
     paused = false; alive = true;
+    // Update hint
+    if (aiMode) {
+      hintEl.setAttribute('data-en', '🔵 you = bottom · 🤖 bot = top');
+      hintEl.setAttribute('data-ru', '🔵 ты = снизу · 🤖 бот = сверху');
+      hintEl.setAttribute('data-lv', '🔵 tu = apakšā · 🤖 bots = augšā');
+    } else {
+      hintEl.setAttribute('data-en', '🔵 bottom half · 🔴 top half');
+      hintEl.setAttribute('data-ru', '🔵 нижняя половина · 🔴 верхняя половина');
+      hintEl.setAttribute('data-lv', '🔵 apakšpuse · 🔴 augšpuse');
+    }
+    Lang.applyDom(hintEl.parentElement);
   }
 
   // ── Scoring ──────────────────────────────────────────────────────────────────
@@ -206,23 +240,24 @@
 
     if (scores[scorer] >= WIN) {
       alive = false;
-      const cyan = scorer === 0;
-      ovTitle.textContent = cyan
-        ? Lang.t('Синий побеждает! 🔵', 'Zilais uzvar! 🔵', 'Blue wins! 🔵')
-        : Lang.t('Красный побеждает! 🔴', 'Sarkanais uzvar! 🔴', 'Red wins! 🔴');
+      const isP1 = scorer === 0;
+      const botWon = aiMode && !isP1;
+      ovTitle.textContent = botWon
+        ? Lang.t('Бот побеждает! 🤖', 'Bots uzvar! 🤖', 'Bot wins! 🤖')
+        : isP1
+          ? Lang.t('Синий побеждает! 🔵', 'Zilais uzvar! 🔵', 'Blue wins! 🔵')
+          : Lang.t('Красный побеждает! 🔴', 'Sarkanais uzvar! 🔴', 'Red wins! 🔴');
       const result = Lang.t(
         `Счёт: ${scores[0]}–${scores[1]}. Снова?`,
         `Rezultāts: ${scores[0]}–${scores[1]}. Vēlreiz?`,
         `Score: ${scores[0]}–${scores[1]}. Play again?`
       );
-      // Spanish sneak-in on win — 60% chance
       ovMsg.textContent = Lang.pickEs(`${Lang.esWin()} ${scores[0]}–${scores[1]}`, result, 0.6);
       startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
       overlay.classList.add('show');
       return;
     }
 
-    // Pause briefly, relaunch toward the player who got scored on
     paused = true;
     puck.vx = 0; puck.vy = 0;
     puck.x = W / 2; puck.y = H / 2;
@@ -233,17 +268,63 @@
     }, 850);
   }
 
-  // ── Physics step ─────────────────────────────────────────────────────────────
+  // ── AI ───────────────────────────────────────────────────────────────────────
+  let aiTargetX = 0;
+  let aiUpdateTimer = 0;
+
+  function aiStep() {
+    const p = paddles[1];
+    const aiMaxSpd = Math.min(W, H) * 0.014;
+
+    // Recalculate target every ~6 frames for realistic reaction lag
+    aiUpdateTimer--;
+    if (aiUpdateTimer <= 0) {
+      aiUpdateTimer = 5 + Math.floor(Math.random() * 4);
+
+      if (puck.vy < -0.3) {
+        // Puck heading toward AI — predict x at paddle y
+        const steps = (p.y - puck.y) / (-puck.vy);
+        let px = puck.x + puck.vx * Math.max(0, steps);
+        // One-bounce wall prediction
+        const lo = puck.r, hi = W - puck.r;
+        while (px < lo) px = 2 * lo - px;
+        while (px > hi) px = 2 * hi - px;
+        // Add imprecision (±6% of width) — makes it beatable
+        aiTargetX = px + (Math.random() - 0.5) * W * 0.12;
+      } else {
+        // Puck going away — drift back to center
+        aiTargetX = W / 2 + (Math.random() - 0.5) * W * 0.08;
+      }
+    }
+
+    // Vertical: if puck close, lean forward to intercept; else hold defense row
+    const defY = H * 0.22;
+    const attackY = puck.vy < 0 && puck.y < H * 0.45
+      ? Math.max(p.r, puck.y + p.r + puck.r + 4)
+      : defY;
+    const targetY = clamp(attackY, p.r, H / 2 - p.r * 0.5);
+
+    const dx = aiTargetX - p.x;
+    const dy = targetY - p.y;
+    const dist = Math.hypot(dx, dy);
+    const sp = Math.min(aiMaxSpd, dist * 0.22);
+    if (dist > 1) { p.vx = (dx / dist) * sp; p.vy = (dy / dist) * sp; }
+  }
+
+  // ── Physics ──────────────────────────────────────────────────────────────────
   function movePaddles() {
     const ks = Math.min(W, H) * 0.009;
     if (keys['ArrowLeft'])  paddles[0].vx -= ks * 0.4;
     if (keys['ArrowRight']) paddles[0].vx += ks * 0.4;
     if (keys['ArrowUp'])    paddles[0].vy -= ks * 0.4;
     if (keys['ArrowDown'])  paddles[0].vy += ks * 0.4;
-    if (keys['a'] || keys['A']) paddles[1].vx -= ks * 0.4;
-    if (keys['d'] || keys['D']) paddles[1].vx += ks * 0.4;
-    if (keys['w'] || keys['W']) paddles[1].vy -= ks * 0.4;
-    if (keys['s'] || keys['S']) paddles[1].vy += ks * 0.4;
+    if (!aiMode) {
+      if (keys['a'] || keys['A']) paddles[1].vx -= ks * 0.4;
+      if (keys['d'] || keys['D']) paddles[1].vx += ks * 0.4;
+      if (keys['w'] || keys['W']) paddles[1].vy -= ks * 0.4;
+      if (keys['s'] || keys['S']) paddles[1].vy += ks * 0.4;
+    }
+    if (aiMode) aiStep();
 
     for (let i = 0; i < 2; i++) {
       const p = paddles[i];
@@ -260,42 +341,33 @@
     movePaddles();
     if (paused) return;
 
-    // Move puck
     puck.x += puck.vx;
     puck.y += puck.vy;
     puck.vx *= 0.9988;
     puck.vy *= 0.9988;
 
-    // Keep puck moving
     const spd = Math.hypot(puck.vx, puck.vy);
     const minSpd = Math.min(W, H) * 0.002;
-    if (spd > 0 && spd < minSpd) {
-      puck.vx = puck.vx / spd * minSpd;
-      puck.vy = puck.vy / spd * minSpd;
-    }
+    if (spd > 0 && spd < minSpd) { puck.vx = puck.vx / spd * minSpd; puck.vy = puck.vy / spd * minSpd; }
     if (spd === 0) puck.vy = minSpd;
 
     const { x1, x2 } = goalBounds();
     const inGoal = puck.x > x1 && puck.x < x2;
 
-    // Left / right walls
-    if (puck.x - puck.r < 0) { puck.x = puck.r; puck.vx = Math.abs(puck.vx); sndWall(); }
-    if (puck.x + puck.r > W) { puck.x = W - puck.r; puck.vx = -Math.abs(puck.vx); sndWall(); }
+    if (puck.x - puck.r < 0) { puck.x = puck.r;      puck.vx =  Math.abs(puck.vx); sndWall(); }
+    if (puck.x + puck.r > W) { puck.x = W - puck.r;  puck.vx = -Math.abs(puck.vx); sndWall(); }
 
-    // Top edge: goal (P1 scores) or wall bounce
     if (puck.y - puck.r < 0) {
       if (inGoal) { goalScored(0); return; }
       puck.y = puck.r; puck.vy = Math.abs(puck.vy); sndWall();
     }
-
-    // Bottom edge: goal (P2 scores) or wall bounce
     if (puck.y + puck.r > H) {
       if (inGoal) { goalScored(1); return; }
       puck.y = H - puck.r; puck.vy = -Math.abs(puck.vy); sndWall();
     }
 
-    // Paddle collisions
-    const maxSpd = Math.min(W, H) * 0.020;
+    // Paddle-puck collisions — strong hits!
+    const maxSpd = Math.min(W, H) * 0.032;
     for (let i = 0; i < 2; i++) {
       const p = paddles[i];
       const dx = puck.x - p.x, dy = puck.y - p.y;
@@ -307,9 +379,10 @@
         puck.y = p.y + ny * minD;
         const rel = (puck.vx - p.vx) * nx + (puck.vy - p.vy) * ny;
         if (rel < 0) {
-          const kick = Math.hypot(p.vx, p.vy);
-          const base = Math.max(Math.min(W, H) * 0.006, Math.hypot(puck.vx, puck.vy) * 1.1);
-          let newSpd = Math.min(base + kick * 0.55, maxSpd);
+          const kick    = Math.hypot(p.vx, p.vy);
+          const current = Math.hypot(puck.vx, puck.vy);
+          const base    = Math.max(Math.min(W, H) * 0.010, current * 1.35);
+          const newSpd  = Math.min(base + kick * 0.80, maxSpd);
           puck.vx = nx * newSpd;
           puck.vy = ny * newSpd;
           sndHit();
@@ -317,7 +390,6 @@
       }
     }
 
-    // Speed cap
     const s2 = Math.hypot(puck.vx, puck.vy);
     if (s2 > maxSpd) { puck.vx = puck.vx / s2 * maxSpd; puck.vy = puck.vy / s2 * maxSpd; }
   }
@@ -330,13 +402,11 @@
     const { x1, x2 } = goalBounds();
     const postW = 7, postH = 22;
 
-    // Goal tint zones
     ctx.fillStyle = 'rgba(34,211,238,0.10)';
     ctx.fillRect(x1, 0, x2 - x1, 5);
     ctx.fillStyle = 'rgba(248,113,113,0.10)';
     ctx.fillRect(x1, H - 5, x2 - x1, 5);
 
-    // Goal posts
     ctx.fillStyle = '#22d3ee';
     ctx.fillRect(x1 - postW / 2, 0, postW, postH);
     ctx.fillRect(x2 - postW / 2, 0, postW, postH);
@@ -344,19 +414,16 @@
     ctx.fillRect(x1 - postW / 2, H - postH, postW, postH);
     ctx.fillRect(x2 - postW / 2, H - postH, postW, postH);
 
-    // Center line
     ctx.strokeStyle = 'rgba(255,255,255,0.09)';
     ctx.lineWidth = 2;
     ctx.setLineDash([7, 5]);
     ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Center circle
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(W / 2, H / 2, H * 0.11, 0, Math.PI * 2); ctx.stroke();
 
-    // Player labels (faint)
     const fs = Math.min(W, H) * 0.05;
     ctx.font = `600 ${fs}px sans-serif`;
     ctx.textBaseline = 'bottom';
@@ -365,45 +432,36 @@
     ctx.fillText('P1', 10, H - 6);
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(248,113,113,0.28)';
-    ctx.fillText('P2', 10, 6);
+    ctx.fillText(aiMode ? '🤖' : 'P2', 10, 6);
 
-    // Paddles
     const pColors = ['#22d3ee', '#f87171'];
     for (let i = 0; i < 2; i++) {
       const p = paddles[i];
-      // Glow
       const gr = ctx.createRadialGradient(p.x, p.y, p.r * 0.4, p.x, p.y, p.r + 12);
       gr.addColorStop(0, i === 0 ? 'rgba(34,211,238,0.30)' : 'rgba(248,113,113,0.30)');
       gr.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 12, 0, Math.PI * 2);
       ctx.fillStyle = gr; ctx.fill();
-      // Body
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fillStyle = pColors[i]; ctx.fill();
-      // Inner ring
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.58, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(0,0,0,0.30)'; ctx.lineWidth = 2.5; ctx.stroke();
-      // Center dot
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.18, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill();
     }
 
-    // Puck shadow
     ctx.beginPath(); ctx.arc(puck.x + 3, puck.y + 4, puck.r * 0.9, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
-    // Puck body
     ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI * 2);
     ctx.fillStyle = '#dde3ef'; ctx.fill();
-    // Puck inner
     ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r * 0.45, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
   }
 
-  // ── Game loop ────────────────────────────────────────────────────────────────
+  // ── Loop ─────────────────────────────────────────────────────────────────────
   function loop() {
     if (!alive) return;
-    step();
-    draw();
+    step(); draw();
     raf = requestAnimationFrame(loop);
   }
 
@@ -411,18 +469,20 @@
     cancelAnimationFrame(raf);
     overlay.classList.remove('show');
     ovTitle.textContent = 'Air Hockey';
+    aiUpdateTimer = 0;
     initGame();
     loop();
   }
 
   startBtn.addEventListener('click', start);
 
-  // ── Pointer controls ─────────────────────────────────────────────────────────
+  // ── Pointer controls ──────────────────────────────────────────────────────────
   board.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     const rect = board.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const idx = y < H / 2 ? 1 : 0; // top half → P2, bottom → P1
+    const idx = y < H / 2 ? 1 : 0;
+    if (aiMode && idx === 1) return; // top half belongs to bot
     for (const [id, pi] of ptrs) { if (pi === idx) { ptrs.delete(id); break; } }
     ptrs.set(e.pointerId, idx);
     board.setPointerCapture(e.pointerId);
@@ -441,7 +501,7 @@
   board.addEventListener('pointerup',     (e) => { ptrs.delete(e.pointerId); });
   board.addEventListener('pointercancel', (e) => { ptrs.delete(e.pointerId); });
 
-  // ── Keyboard controls ────────────────────────────────────────────────────────
+  // ── Keyboard ──────────────────────────────────────────────────────────────────
   window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
     if (!alive && (e.key === ' ' || e.key === 'Enter')) start();
