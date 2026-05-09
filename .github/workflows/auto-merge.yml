@@ -11,6 +11,11 @@ permissions:
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.user.login == 'samoletovs' ||
+      github.event.pull_request.user.login == 'claude[bot]' ||
+      github.event.pull_request.user.login == 'copilot[bot]' ||
+      github.event.pull_request.user.login == 'app/claude'
     steps:
       - name: Merge PR
         env:
