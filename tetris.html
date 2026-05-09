@@ -60,7 +60,9 @@
   .score b { color: var(--text); }
   .board-wrap {
     position: relative;
-    width: min(100vw - 20px, 360px);
+    /* Tetris is 10:20 (1:2) so the height budget dominates on most screens.
+       width = min(viewport-width, half-of-height-budget). */
+    width: min(100vw - 20px, calc((100dvh - 220px) / 2), 500px);
     aspect-ratio: 10 / 20;
     background: var(--panel);
     border-radius: 12px;

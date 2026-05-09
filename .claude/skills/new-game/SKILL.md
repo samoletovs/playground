@@ -1,13 +1,13 @@
 ---
 name: new-game
-description: Scaffold a new single-file HTML game in this playground repo. Creates a `<slug>.html` from the shared template, wires it into the menu in `index.html`, and pushes directly to main so the kid can play it ~30s later. Use whenever the user wants to start a new game (e.g. "/new-game memory match", "scaffold a tic-tac-toe game", "let's add pong"). Do not invent gameplay during the scaffold — produce a runnable empty shell, then stop.
+description: Scaffold a new single-file HTML game in this playground repo. Creates a `<slug>.html` from the shared template, wires it into the menu in `index.html`, and opens an auto-merging PR so the kid can play it ~40s later. Use whenever the user wants to start a new game (e.g. "/new-game memory match", "scaffold a tic-tac-toe game", "let's add pong"). Do not invent gameplay during the scaffold — produce a runnable empty shell, then stop.
 ---
 
 # new-game
 
 Scaffold a new game in the playground repo. The output is a runnable but empty shell that follows every repo convention. Filling in gameplay is a separate step the user will request next.
 
-**No PR step.** Push directly to `main` — the kid plays the game on their phone ~30 seconds later. There's no human review and no CI; the auto-merge workflow exists but isn't used by this skill anymore. Faster, simpler, fewer moving parts.
+**PR + auto-merge.** Claude Code on mobile creates a PR by default (it won't push directly to `main` for safety). The repo's auto-merge workflow squash-merges PRs from the repo owner / `claude[bot]` / `copilot[bot]` automatically and deletes the branch — typically in ~10–15 seconds. GitHub Pages then deploys in another ~30s. **Total ask-to-play: ~40–45 seconds.**
 
 ## Inputs
 
@@ -35,9 +35,9 @@ If the user gives you enough to infer some of these, do — only ask about the t
 
 ## Steps
 
-1. Make sure you're on `main` and up to date:
+1. Make sure you're on `main` and up to date, then branch:
    ```
-   git checkout main && git pull origin main
+   git checkout main && git pull origin main && git checkout -b claude/<slug>
    ```
 2. Read `.claude/skills/new-game/template.html` and write `<slug>.html` at the repo root, replacing every placeholder:
    - `{{TITLE_EN}}` → English display title
@@ -59,17 +59,18 @@ If the user gives you enough to infer some of these, do — only ask about the t
        <p data-en="{{TAGLINE_EN}}" data-ru="{{TAGLINE_RU}}" data-lv="{{TAGLINE_LV}}">{{TAGLINE_EN}}</p>
      </a>
      ```
-4. Commit and push directly to `main`:
+4. Commit and push the branch:
    ```
    git add <slug>.html index.html
-   git commit -m "Add <Title> game"
-   git push origin main
+   git commit -m "Add <Title> game scaffold"
+   git push -u origin claude/<slug>
    ```
-5. Tell the user the deployed URL: `https://playground.naurolabs.com/<slug>.html?v=<timestamp>` (the `?v=` cache-bust ensures the kid hits fresh content immediately). Mention the menu card too. GitHub Pages picks up the change in ~30 seconds.
+5. Open a PR with `gh pr create --title "Add <Title> game scaffold" --body "<short summary + test plan>"`. The auto-merge workflow handles the rest.
+6. Tell the user the deployed URL: `https://playground.naurolabs.com/<slug>.html?v=<timestamp>` (the `?v=` cache-bust ensures the kid hits fresh content immediately). Mention the menu card too.
 
 ## Stop here
 
-After the push lands, **do not** start writing game logic. The shell is intentionally empty — it draws the panel background and shows the Play button, nothing more. Wait for the user to describe the gameplay (or to ask you to flesh it out). When they do, edit and push directly to `main` — no branches, no PRs.
+After the PR is opened, **do not** start writing game logic. The shell is intentionally empty — it draws the panel background and shows the Play button, nothing more. Wait for the user to describe the gameplay (or to ask you to flesh it out). When they do, work in a new branch and open a fresh PR.
 
 ## Conventions the template already encodes
 

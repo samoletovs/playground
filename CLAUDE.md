@@ -29,6 +29,17 @@ These are load-bearing for the "feels right on a phone" experience — match the
 
 - **Mobile viewport**: `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">` and `<meta name="theme-color" content="#0b1020">`.
 - **Layout**: `100dvh` height, `padding: max(env(safe-area-inset-top), …)`, `overflow: hidden` on body, `-webkit-tap-highlight-color: transparent`, `user-select: none`.
+- **Play area scales to BOTH phone AND tablet**: the kids play on iPhone 13 (~390px wide) and iPad (~1000px wide). Don't cap the board at a fixed 480px or it looks like a postage stamp on iPad. Use this pattern for `.board-wrap`:
+  ```css
+  .board-wrap {
+    /* width = the smaller of: viewport width minus margin, OR available
+       height multiplied by aspect ratio. So the board fills whichever
+       dimension is smaller, keeping its aspect ratio intact. */
+    width: min(100vw - 24px, calc(100dvh - 200px), 800px);  /* 1:1 (square) */
+    aspect-ratio: 1 / 1;
+  }
+  ```
+  For 3:4 boards: `min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px)`. For 1:2 (tall): `min(100vw - 24px, calc((100dvh - 200px) / 2), 500px)`. The `200px` allowance is for header + start overlay + hint; bump it to `220px` if your game has bigger controls. The third arg is a sane max for very large screens.
 - **Play area**: a `.board-wrap` element with `touch-action: none` so swipe/drag doesn't scroll the page. Canvas inside is sized in CSS pixels and the backing store is scaled by `devicePixelRatio` in JS.
 - **Color tokens**: shared palette via `:root` CSS vars (`--bg #0b1020`, `--panel #131a33`, `--grid #1b2347`, `--text #e5e7eb`, `--muted #94a3b8`). Per-game accent colors are added as extra vars.
 - **Header**: `← Menu` back link (`<a class="back" href="index.html">`) on the left, score readout on the right.
@@ -39,13 +50,15 @@ These are load-bearing for the "feels right on a phone" experience — match the
 
 ## Adding a new game (and editing existing ones)
 
-**Push directly to `main`.** No branches, no PRs, no auto-merge. The whole point of this repo is the shortest possible loop between "kid asks" and "kid plays". Use the `new-game` skill (`.claude/skills/new-game/`) to scaffold a runnable empty shell with all conventions baked in; it does the `git checkout main && git pull && commit && push origin main` for you.
+**Use the PR + auto-merge flow.** Claude Code on mobile creates a PR by default (it doesn't push directly to `main` for safety). The repo's auto-merge workflow (`.github/workflows/auto-merge.yml`) squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **Real measured time: PR opens → auto-merge fires in ~10–15 seconds → GitHub Pages deploys in another ~30 seconds. Total: ~40–45s from "PR opened" to "kid plays".** That's fine — don't try to bypass the PR step.
 
-For **bug fixes and feature additions** to existing games: same rule. Edit the file, commit with a clear message, push to `main`. GitHub Pages deploys in ~30 seconds. Tell the kid the URL with a `?v=<timestamp>` cache-bust so they hit fresh content immediately.
+Use the `new-game` skill (`.claude/skills/new-game/`) to scaffold a runnable empty shell with all conventions baked in. The skill handles branch + commit + push + PR for you.
 
-There is no human review and no CI gate — anything that lands ships immediately to Pages. Test the file in a browser before pushing. The auto-merge workflow (`.github/workflows/auto-merge.yml`) is left in place for the rare case we want to PR something for review later, but isn't part of the kid-flow anymore.
+For **bug fixes and feature additions** to existing games: same flow. Branch from `main`, commit, push, open PR, let auto-merge land it. Tell the kid the URL with a `?v=<timestamp>` cache-bust so they hit fresh content immediately.
 
-If you're editing manually instead of using the `new-game` skill: pull `main`, create `<game-name>.html` at the repo root (copy an existing game as a starting point), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, commit, push to `main`.
+There is no human review and no CI gate — anything that gets a PR opened ships immediately. Test the file in a browser before pushing if you can.
+
+If you're editing manually: pull `main`, branch as `claude/<game-name>` or `claude/<change>`, create or edit `<game-name>.html` at the repo root (copy an existing game as a starting point for new ones), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, commit, push the branch, open a PR with `gh pr create`. Auto-merge takes it from there.
 
 ## Language model — English primary, RU/LV helper, Spanish sneak-ins
 

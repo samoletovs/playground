@@ -58,7 +58,14 @@
   .score b { color: var(--text); }
   .board-wrap {
     position: relative;
-    width: min(100vw - 24px, 480px);
+    /* Scale to the largest square that fits BOTH the viewport width AND the
+       leftover height (after header + start button + hint). This makes the
+       game fill the screen on iPhone AND on iPad — change the aspect-ratio
+       below if your game isn't 1:1. For 3:4 use:
+       width: min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px);
+       For 1:2 (tall) use:
+       width: min(100vw - 24px, calc((100dvh - 200px) / 2), 500px); */
+    width: min(100vw - 24px, calc(100dvh - 200px), 800px);
     aspect-ratio: 1 / 1;
     background: var(--panel);
     border-radius: 14px;

@@ -51,7 +51,8 @@
   .colon { color: var(--muted); font-size: 16px; }
   .board-wrap {
     position: relative;
-    width: min(100vw - 24px, 420px);
+    /* 3:4 board scales to fit the screen on phone AND iPad. */
+    width: min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px);
     aspect-ratio: 3 / 4;
     background: var(--panel);
     border-radius: 14px;

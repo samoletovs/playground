@@ -251,7 +251,9 @@ const DIFF = {
 };
 
 function resize() {
-  const maxW = Math.min(window.innerWidth - 32, 520);
+  // Cap raised so iPads use their full screen; on iPhone the height budget
+  // dominates and naturally clamps the size.
+  const maxW = Math.min(window.innerWidth - 32, 1200);
   const maxH = window.innerHeight - 160;
   const ratio = 16 / 10;
   let w = maxW, h = w / ratio;

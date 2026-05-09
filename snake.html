@@ -62,7 +62,9 @@
   .score b { color: var(--text); }
   .board-wrap {
     position: relative;
-    width: min(100vw - 24px, 480px);
+    /* Scale to the largest square that fits in BOTH width and height budgets, so
+       Snake fills the screen on phone (390px wide) AND on iPad (~1000px). */
+    width: min(100vw - 24px, calc(100dvh - 200px), 800px);
     aspect-ratio: 1 / 1;
     background: var(--panel);
     border-radius: 14px;

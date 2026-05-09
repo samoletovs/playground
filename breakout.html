@@ -59,7 +59,9 @@
   .score b { color: var(--text); }
   .board-wrap {
     position: relative;
-    width: min(100vw - 24px, 480px);
+    /* Width = the smaller of: 90% of viewport width, or 3/4 of available height.
+       Scales up to ~600px on iPad without overflowing on iPhone. */
+    width: min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px);
     aspect-ratio: 3 / 4;
     background: var(--panel);
     border-radius: 14px;
