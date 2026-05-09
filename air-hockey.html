@@ -173,7 +173,7 @@
       o.start(); o.stop(c.currentTime + dur);
     } catch (_) {}
   }
-  function sndHit()  { tone(340, 0.07, 0.25); }
+  function sndHit(str) { tone(260 + str * 200, 0.07, 0.14 + str * 0.20); }
   function sndWall() { tone(160, 0.05, 0.12); }
   function sndGoal(player) {
     const f = player === 0 ? 660 : 440;
@@ -366,8 +366,8 @@
       puck.y = H - puck.r; puck.vy = -Math.abs(puck.vy); sndWall();
     }
 
-    // Paddle-puck collisions — strong hits!
-    const maxSpd = Math.min(W, H) * 0.032;
+    // Paddle-puck collisions — impulse physics: fast swing = fast puck
+    const maxSpd = Math.min(W, H) * 0.040;
     for (let i = 0; i < 2; i++) {
       const p = paddles[i];
       const dx = puck.x - p.x, dy = puck.y - p.y;
@@ -377,21 +377,22 @@
         const nx = dx / dist, ny = dy / dist;
         puck.x = p.x + nx * minD;
         puck.y = p.y + ny * minD;
+        // Relative velocity along collision normal
         const rel = (puck.vx - p.vx) * nx + (puck.vy - p.vy) * ny;
         if (rel < 0) {
-          const kick    = Math.hypot(p.vx, p.vy);
-          const current = Math.hypot(puck.vx, puck.vy);
-          const base    = Math.max(Math.min(W, H) * 0.010, current * 1.35);
-          const newSpd  = Math.min(base + kick * 0.80, maxSpd);
-          puck.vx = nx * newSpd;
-          puck.vy = ny * newSpd;
-          sndHit();
+          // Impulse: e=0.88 restitution, paddle mass >> puck so paddle doesn't slow
+          // Hard swing → big relative velocity → big impulse → fast puck
+          const impulse = -(1 + 0.88) * rel;
+          puck.vx += impulse * nx;
+          puck.vy += impulse * ny;
+          const spd2 = Math.hypot(puck.vx, puck.vy);
+          const minS = Math.min(W, H) * 0.004;
+          if (spd2 > 0 && spd2 < minS) { puck.vx = puck.vx / spd2 * minS; puck.vy = puck.vy / spd2 * minS; }
+          if (spd2 > maxSpd) { puck.vx = puck.vx / spd2 * maxSpd; puck.vy = puck.vy / spd2 * maxSpd; }
+          sndHit(Math.min(1, spd2 / maxSpd));
         }
       }
     }
-
-    const s2 = Math.hypot(puck.vx, puck.vy);
-    if (s2 > maxSpd) { puck.vx = puck.vx / s2 * maxSpd; puck.vy = puck.vy / s2 * maxSpd; }
   }
 
   // ── Draw ─────────────────────────────────────────────────────────────────────
