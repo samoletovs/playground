@@ -37,11 +37,15 @@ These are load-bearing for the "feels right on a phone" experience — match the
 - **Best score**: persist to `localStorage` under the key `<game>.best` (e.g. `snake.best`, `tetris.best`).
 - **Bilingual UI**: include `<script src="lang.js"></script>` and use `data-en/data-ru/data-lv` attributes (or `Lang.t(ru, lv, en)` for dynamic strings) on every visible string. See the *Language model* section below.
 
-## Adding a new game
+## Adding a new game (and editing existing ones)
 
-Use the `new-game` skill (`.claude/skills/new-game/`) — it scaffolds a runnable empty shell with the bilingual conventions baked in, branches, commits, and opens a PR. The auto-merge workflow (`.github/workflows/auto-merge.yml`) then squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically, deletes the branch, and ships to Pages. **There is no human review and no CI gate, so anything that lands ships immediately.** Test the file in a browser before pushing.
+**Push directly to `main`.** No branches, no PRs, no auto-merge. The whole point of this repo is the shortest possible loop between "kid asks" and "kid plays". Use the `new-game` skill (`.claude/skills/new-game/`) to scaffold a runnable empty shell with all conventions baked in; it does the `git checkout main && git pull && commit && push origin main` for you.
 
-If you're editing manually instead of using the skill: branch from `main` as `claude/<game-name>`, create `<game-name>.html` at the repo root (copy an existing game as a starting point), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, and open a PR.
+For **bug fixes and feature additions** to existing games: same rule. Edit the file, commit with a clear message, push to `main`. GitHub Pages deploys in ~30 seconds. Tell the kid the URL with a `?v=<timestamp>` cache-bust so they hit fresh content immediately.
+
+There is no human review and no CI gate — anything that lands ships immediately to Pages. Test the file in a browser before pushing. The auto-merge workflow (`.github/workflows/auto-merge.yml`) is left in place for the rare case we want to PR something for review later, but isn't part of the kid-flow anymore.
+
+If you're editing manually instead of using the `new-game` skill: pull `main`, create `<game-name>.html` at the repo root (copy an existing game as a starting point), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, commit, push to `main`.
 
 ## Language model — English primary, RU/LV helper, Spanish sneak-ins
 

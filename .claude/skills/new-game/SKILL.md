@@ -1,11 +1,13 @@
 ---
 name: new-game
-description: Scaffold a new single-file HTML game in this playground repo. Creates a `<slug>.html` from the shared template, wires it into the menu in `index.html`, branches, commits, and opens a PR. Use whenever the user wants to start a new game (e.g. "/new-game memory match", "scaffold a tic-tac-toe game", "let's add pong"). Do not invent gameplay during the scaffold — produce a runnable empty shell, then stop.
+description: Scaffold a new single-file HTML game in this playground repo. Creates a `<slug>.html` from the shared template, wires it into the menu in `index.html`, and pushes directly to main so the kid can play it ~30s later. Use whenever the user wants to start a new game (e.g. "/new-game memory match", "scaffold a tic-tac-toe game", "let's add pong"). Do not invent gameplay during the scaffold — produce a runnable empty shell, then stop.
 ---
 
 # new-game
 
 Scaffold a new game in the playground repo. The output is a runnable but empty shell that follows every repo convention. Filling in gameplay is a separate step the user will request next.
+
+**No PR step.** Push directly to `main` — the kid plays the game on their phone ~30 seconds later. There's no human review and no CI; the auto-merge workflow exists but isn't used by this skill anymore. Faster, simpler, fewer moving parts.
 
 ## Inputs
 
@@ -33,9 +35,9 @@ If the user gives you enough to infer some of these, do — only ask about the t
 
 ## Steps
 
-1. Make sure you are on a clean tree, then branch from `main`:
+1. Make sure you're on `main` and up to date:
    ```
-   git checkout main && git pull origin main && git checkout -b claude/<slug>
+   git checkout main && git pull origin main
    ```
 2. Read `.claude/skills/new-game/template.html` and write `<slug>.html` at the repo root, replacing every placeholder:
    - `{{TITLE_EN}}` → English display title
@@ -57,14 +59,17 @@ If the user gives you enough to infer some of these, do — only ask about the t
        <p data-en="{{TAGLINE_EN}}" data-ru="{{TAGLINE_RU}}" data-lv="{{TAGLINE_LV}}">{{TAGLINE_EN}}</p>
      </a>
      ```
-4. Commit with message `Add <Title> game scaffold` and push: `git push -u origin claude/<slug>`.
-5. Open a PR titled `Add <Title> game scaffold` with a short Summary and Test plan. Auto-merge will land it.
-6. Subscribe to the PR (`subscribe_pr_activity`) so you'll see CI / review activity.
-7. Tell the user the deployed URL: `https://playground.naurolabs.com/<slug>.html` and that a new card is on the menu.
+4. Commit and push directly to `main`:
+   ```
+   git add <slug>.html index.html
+   git commit -m "Add <Title> game"
+   git push origin main
+   ```
+5. Tell the user the deployed URL: `https://playground.naurolabs.com/<slug>.html?v=<timestamp>` (the `?v=` cache-bust ensures the kid hits fresh content immediately). Mention the menu card too. GitHub Pages picks up the change in ~30 seconds.
 
 ## Stop here
 
-After the PR is open, **do not** start writing game logic. The shell is intentionally empty — it draws the panel background and shows the Play button, nothing more. Wait for the user to describe the gameplay (or to ask you to flesh it out). When they do, work in a new branch.
+After the push lands, **do not** start writing game logic. The shell is intentionally empty — it draws the panel background and shows the Play button, nothing more. Wait for the user to describe the gameplay (or to ask you to flesh it out). When they do, edit and push directly to `main` — no branches, no PRs.
 
 ## Conventions the template already encodes
 
