@@ -1,21 +1,39 @@
 /* lang.js — tiny shared language helper for playGround
  *
- * One simple model:
- *   • Top switcher: 🇷🇺 RU ⇄ 🇱🇻 LV  (base language)
- *   • English ALWAYS paired with the base   (the constant learning target)
- *   • Spanish sneaks in 1–3 places per game (delight, not chrome)
+ * Pedagogical model:
+ *   • English is the main language (top learning priority)
+ *   • RU/LV is shown as a smaller muted helper hint right after each English string
+ *   • Top switcher 🇷🇺 RU ⇄ 🇱🇻 LV chooses which helper language is shown
+ *   • Spanish sneaks in 1–3 places per game as cosmetic delight
  *
- * Usage in HTML (static strings):
- *   <span data-ru="Старт" data-lv="Sākt" data-en="Start">Start</span>
- *   <button data-ru="Снова" data-lv="Vēlreiz" data-en="Again"
- *           data-tr-mode="pair">Again</button>      // default mode
- *   <h1 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h1>
+ * Visual format (auto-styled via injected CSS):
+ *
+ *      Start  старт          ← English big, RU helper smaller and muted
+ *      Score  счёт   12      ← same pattern, value follows
+ *
+ * Usage in HTML (static strings) — pair mode is the default:
+ *   <span data-en="Start" data-ru="Старт" data-lv="Sākt">Start</span>
+ *   <button data-en="Again" data-ru="Снова" data-lv="Vēlreiz">Again</button>
+ *
+ * For elements where the helper would clutter (proper nouns, very short labels),
+ * skip translation entirely (no data-* attributes) — the element just stays English.
+ *   <h1>Snake</h1>
+ *
+ * Or force English-only via data-tr-mode="en":
+ *   <h1 data-en="Snake" data-tr-mode="en">Snake</h1>
+ *
+ * Or force base-only via data-tr-mode="base" (rare):
+ *   <a data-ru="Меню" data-lv="Izvēlne" data-tr-mode="base">Menu</a>
  *
  * Usage in JS (dynamic strings):
  *   titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
- *   toast(Lang.pickEs('¡Excelente!', Lang.t('Победа!', 'Uzvara!', 'You win!')));
+ *   // → "Game over · Конец игры"  (or LV variant in LV mode)
  *
- * Render the switcher once in your menu page:
+ *   toast(Lang.pickEs('¡Excelente!', Lang.t('Победа!', 'Uzvara!', 'You win!')));
+ *   toast(Lang.esWin());                 // always Spanish: random win phrase
+ *   toast(Lang.esWord('🐕'));            // 'perro'
+ *
+ * Render the switcher once on the menu page:
  *   <div id="lang-switch"></div>
  *   <script>Lang.renderSwitcher(document.getElementById('lang-switch'));</script>
  */
@@ -25,7 +43,7 @@
   let base = localStorage.getItem(KEY);
   if (!VALID.includes(base)) base = 'ru';
 
-  // Spanish sneak-in vocabulary — emoji → ES word (used by Lang.esWord)
+  // Spanish sneak-in vocabulary — emoji → ES word
   const ES_WORDS = {
     '🐕': 'perro', '🐶': 'perrito', '🐈': 'gato', '🐱': 'gatito',
     '🐟': 'pez', '🐠': 'pez', '🐦': 'pájaro', '🐢': 'tortuga',
@@ -38,67 +56,117 @@
     '🐍': 'serpiente', '🎉': 'fiesta', '👑': 'corona',
   };
 
-  // Spanish phrase pools — used by esWin / esOops / esTagline
   const ES_WIN     = ['¡Excelente!', '¡Increíble!', '¡Genial!', '¡Bien hecho!', '¡Súper!', '¡Campeón!'];
   const ES_OOPS    = ['¡Ay!', '¡Casi!', '¡Otra vez!', '¡Inténtalo!', '¡Uy!'];
   const ES_TAGLINE = ['¡Juega y aprende!', '¡Vamos a jugar!', '¡Diviértete!', '¡A jugar!'];
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Inject helper CSS once. Includes both the muted helper span style and the
+  // language switcher button styles so consumers don't need to duplicate them.
+  function injectStyle() {
+    if (document.getElementById('lang-helper-style')) return;
+    const style = document.createElement('style');
+    style.id = 'lang-helper-style';
+    style.textContent = `
+      .lang-helper {
+        font-size: 0.78em;
+        opacity: 0.55;
+        font-weight: 400;
+        margin-left: 0.4em;
+        white-space: nowrap;
+      }
+      .lang-switch { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 12px; }
+      .lang-btn {
+        background: #131a33;
+        color: #94a3b8;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .lang-btn.active {
+        color: #4ade80;
+        border-color: rgba(74, 222, 128, 0.4);
+        background: rgba(74, 222, 128, 0.08);
+      }
+      .lang-btn:active { transform: translateY(1px); }
+    `;
+    document.head.appendChild(style);
+  }
+
   const Lang = {
     get base() { return base; },
 
-    // Switch base language — persists and reloads the page.
     set(code) {
       if (!VALID.includes(code) || code === base) return;
       localStorage.setItem(KEY, code);
       location.reload();
     },
 
-    // Pair: "<base> / <english>"  — the workhorse for visible strings.
+    // Plain-text pair: "<English> · <helper>" — for JS-set strings.
+    // If the helper is identical to the English (e.g. "Tetris" = "Tetris"), the
+    // helper is dropped to avoid redundant duplication.
     t(ru, lv, en) {
-      return `${base === 'lv' ? lv : ru} / ${en}`;
+      const helper = base === 'lv' ? lv : ru;
+      return helper && helper !== en ? `${en} · ${helper}` : en;
     },
 
-    // Base only (no English) — for proper nouns, very short labels, etc.
     tBase(ru, lv) { return base === 'lv' ? lv : ru; },
-
-    // Just the English form — for cases where the base is shown elsewhere already.
     tEn(en) { return en; },
 
-    // Spanish sneak-in: returns `es` ~`prob` of the time, else `fallback`.
     pickEs(es, fallback = '', prob = 0.25) {
       return Math.random() < prob ? es : fallback;
     },
-
-    // Random Spanish phrases — convenience helpers for sneak-ins.
     esWin()     { return pick(ES_WIN); },
     esOops()    { return pick(ES_OOPS); },
     esTagline() { return pick(ES_TAGLINE); },
-
-    // Spanish word for a common emoji (zero-cost passive vocab).
     esWord(emoji) { return ES_WORDS[emoji] || ''; },
 
-    // Apply translations to elements with data-ru/data-lv attributes.
-    // Default mode pairs base + English (data-en required).
-    // data-tr-mode="base" renders base only (no English).
+    // Apply translations to elements with data-en / data-ru / data-lv attributes.
+    // Modes:
+    //   default ("pair") — `<English><span class="lang-helper">helper</span>`
+    //   "en"             — English only
+    //   "base"           — helper only (no English shown)
     applyDom(root) {
       root = root || document;
-      root.querySelectorAll('[data-ru]').forEach(el => {
+      root.querySelectorAll('[data-en], [data-ru], [data-lv]').forEach(el => {
         const ru = el.getAttribute('data-ru');
         const lv = el.getAttribute('data-lv') || ru;
         const en = el.getAttribute('data-en');
         const mode = el.getAttribute('data-tr-mode') || 'pair';
-        const baseStr = base === 'lv' ? lv : ru;
-        if (mode === 'base' || !en) {
-          el.textContent = baseStr;
-        } else {
-          el.textContent = `${baseStr} / ${en}`;
+        const helper = base === 'lv' ? lv : ru;
+
+        if (mode === 'en') {
+          if (en) el.textContent = en;
+          return;
+        }
+        if (mode === 'base') {
+          if (helper) el.textContent = helper;
+          return;
+        }
+        if (en && helper && helper !== en) {
+          el.innerHTML = `${escapeHtml(en)}<span class="lang-helper">${escapeHtml(helper)}</span>`;
+        } else if (en) {
+          el.textContent = en;
+        } else if (helper) {
+          el.textContent = helper;
         }
       });
     },
 
-    // Render the RU/LV switcher into a container element.
     renderSwitcher(el) {
       if (!el) return;
       el.classList.add('lang-switch');
@@ -113,7 +181,14 @@
 
   window.Lang = Lang;
 
-  // Auto-apply DOM translations on load.
+  if (document.head) {
+    injectStyle();
+  } else {
+    document.addEventListener('readystatechange', () => {
+      if (document.head && !document.getElementById('lang-helper-style')) injectStyle();
+    });
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => Lang.applyDom());
   } else {

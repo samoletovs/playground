@@ -49,12 +49,12 @@ If the user gives you enough to infer some of these, do — only ask about the t
    - `{{ACCENT_RGB}}` → the accent's `r, g, b` triple (e.g. `74, 222, 128` for `#4ade80`)
 3. Edit `index.html`:
    - Add `.icon.<slug-as-css-class> { background: rgba({{ACCENT_RGB}}, 0.18); color: {{ACCENT}}; }` next to the existing `.icon.<name>` rules. Use the kebab slug as the CSS class.
-   - Append a card inside the `.grid` container, matching the existing format (note the `data-ru/data-lv` attributes — every menu card must support the switcher):
+   - Append a card inside the `.grid` container, matching the existing format. Note the `data-en/data-ru/data-lv` attributes — every menu card is English-primary with a small RU/LV helper next to it:
      ```html
      <a class="card" href="<slug>.html">
        <div class="icon <slug>">{{ICON_LETTERS}}</div>
-       <h2 data-ru="{{TITLE_RU}}" data-lv="{{TITLE_LV}}" data-tr-mode="base">{{TITLE_EN}}</h2>
-       <p data-ru="{{TAGLINE_RU}}" data-lv="{{TAGLINE_LV}}" data-en="{{TAGLINE_EN}}">{{TAGLINE_EN}}</p>
+       <h2 data-en="{{TITLE_EN}}" data-ru="{{TITLE_RU}}" data-lv="{{TITLE_LV}}">{{TITLE_EN}}</h2>
+       <p data-en="{{TAGLINE_EN}}" data-ru="{{TAGLINE_RU}}" data-lv="{{TAGLINE_LV}}">{{TAGLINE_EN}}</p>
      </a>
      ```
 4. Commit with message `Add <Title> game scaffold` and push: `git push -u origin claude/<slug>`.
@@ -84,7 +84,7 @@ Don't regress these when filling in gameplay later:
 
 Once the user describes the game, when you go to add visible strings:
 
-- Hardcoded HTML strings → `data-ru/data-lv/data-en` attributes on the element.
-- Strings set in JS → `Lang.t('ru text', 'lv text', 'english text')` returns `"<base> / English"`.
+- Hardcoded HTML strings → `data-en/data-ru/data-lv` attributes on the element. English is the primary visible text; RU or LV (per the switcher) renders as a smaller muted helper next to it.
+- Strings set in JS → `Lang.t('ru text', 'lv text', 'english text')` returns `"<English> · <helper>"`.
 - Sneak Spanish into 1–3 places: a `Lang.esWin()` toast on a new high score, a `Lang.esWord('🐕')` flash when a sprite spawns, an occasional `Lang.esTagline()` in the hint area. Don't sprinkle Spanish on buttons, scores, or core UI — keep it as delight.
 - Read CLAUDE.md's Language model section before adding text-heavy features.

@@ -139,7 +139,7 @@
 <body>
 <div class="app">
   <div class="topbar">
-    <a class="back-btn" href="index.html" data-ru="← Назад" data-lv="← Atpakaļ" data-tr-mode="base">← Back</a>
+    <a class="back-btn" href="index.html" data-en="← Back" data-ru="Назад" data-lv="Atpakaļ">← Back</a>
     <div class="scoreboard">
       <span class="score-player" id="scorePlayer">0</span>
       <span class="score-sep">:</span>
@@ -148,34 +148,34 @@
     <div style="width:60px"></div>
   </div>
   <div class="labels">
-    <span data-ru="Ты" data-lv="Tu" data-en="You">You</span>
-    <span data-ru="ИИ" data-lv="AI" data-en="AI">AI</span>
+    <span data-en="You" data-ru="Ты" data-lv="Tu">You</span>
+    <span data-en="AI" data-ru="ИИ" data-lv="AI">AI</span>
   </div>
   <canvas id="canvas"></canvas>
   <div class="hint" id="hint"
+       data-en="Move mouse or drag your paddle"
        data-ru="Двигай мышь или тяни ракетку"
-       data-lv="Kustini peli vai velc plātni"
-       data-en="Move mouse or drag your paddle">Move mouse or drag your paddle</div>
+       data-lv="Kustini peli vai velc plātni">Move mouse or drag your paddle</div>
 </div>
 
 <div class="overlay" id="overlay">
-  <h2 data-ru="🏓 Пинг-понг" data-lv="🏓 Galda teniss" data-tr-mode="base">🏓 Table Tennis</h2>
-  <p data-ru="Первый до 7 очков побеждает. Двигай ракетку."
-     data-lv="Pirmais līdz 7 punktiem uzvar. Kustini plātni."
-     data-en="First to 7 wins. Move your paddle.">First to 7 wins. Move your paddle.</p>
+  <h2>🏓 Table Tennis</h2>
+  <p data-en="First to 7 wins. Move your paddle."
+     data-ru="Первый до 7 очков побеждает. Двигай ракетку."
+     data-lv="Pirmais līdz 7 punktiem uzvar. Kustini plātni.">First to 7 wins. Move your paddle.</p>
   <div class="difficulty">
-    <button class="diff-btn" data-level="easy" data-ru="Лёгко" data-lv="Viegli" data-en="Easy">Easy</button>
-    <button class="diff-btn active" data-level="medium" data-ru="Средне" data-lv="Vidēji" data-en="Medium">Medium</button>
-    <button class="diff-btn" data-level="hard" data-ru="Сложно" data-lv="Grūti" data-en="Hard">Hard</button>
+    <button class="diff-btn" data-level="easy" data-en="Easy" data-ru="Лёгко" data-lv="Viegli">Easy</button>
+    <button class="diff-btn active" data-level="medium" data-en="Medium" data-ru="Средне" data-lv="Vidēji">Medium</button>
+    <button class="diff-btn" data-level="hard" data-en="Hard" data-ru="Сложно" data-lv="Grūti">Hard</button>
   </div>
-  <button class="btn" id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
+  <button class="btn" id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
 </div>
 
 <div class="overlay" id="endOverlay" style="display:none">
   <h2 id="endTitle"></h2>
   <p id="endMsg"></p>
-  <button class="btn" id="rematchBtn" data-ru="Снова" data-lv="Vēlreiz" data-en="Again">Again</button>
-  <a class="btn secondary" href="index.html" data-ru="Меню" data-lv="Izvēlne" data-en="Menu">Menu</a>
+  <button class="btn" id="rematchBtn" data-en="Again" data-ru="Снова" data-lv="Vēlreiz">Again</button>
+  <a class="btn secondary" href="index.html" data-en="Menu" data-ru="Меню" data-lv="Izvēlne">Menu</a>
 </div>
 
 <script src="lang.js"></script>

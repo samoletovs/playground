@@ -107,32 +107,32 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
-      <h1 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h1>
+      <a class="back" href="index.html" data-en="← Menu" data-ru="Меню" data-lv="Izvēlne">← Menu</a>
+      <h1>Snake</h1>
     </div>
     <div class="score">
-      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      <span data-en="Score" data-ru="Счёт" data-lv="Rezultāts">Score</span> <b id="score">0</b>
       ·
-      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
+      <span data-en="Best" data-ru="Лучший" data-lv="Labākais">Best</span> <b id="best">0</b>
     </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title" data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h2>
+      <h2 id="title">Snake</h2>
       <p id="msg"
+         data-en="Swipe to steer. Arrow keys on desktop."
          data-ru="Свайп — поворот. Стрелки на компьютере."
-         data-lv="Velc, lai grieztu. Bultas datorā."
-         data-en="Swipe to steer. Arrow keys on desktop.">Swipe to steer. Arrow keys on desktop.</p>
-      <button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
+         data-lv="Velc, lai grieztu. Bultas datorā.">Swipe to steer. Arrow keys on desktop.</p>
+      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
     </div>
   </div>
 
   <div class="hint"
+       data-en="Tip: swipe anywhere on the board."
        data-ru="Совет: свайп в любом месте поля."
-       data-lv="Padoms: velc jebkur uz lauka."
-       data-en="Tip: swipe anywhere on the board.">Tip: swipe anywhere on the board.</div>
+       data-lv="Padoms: velc jebkur uz lauka.">Tip: swipe anywhere on the board.</div>
 </div>
 
 <script src="lang.js"></script>

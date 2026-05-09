@@ -104,35 +104,35 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
-      <h1 data-ru="Арканоид" data-lv="Breakout" data-tr-mode="base">Breakout</h1>
+      <a class="back" href="index.html" data-en="← Menu" data-ru="Меню" data-lv="Izvēlne">← Menu</a>
+      <h1>Breakout</h1>
     </div>
     <div class="score">
-      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      <span data-en="Score" data-ru="Счёт" data-lv="Rezultāts">Score</span> <b id="score">0</b>
       ·
-      <span data-ru="Жизни" data-lv="Dzīvības" data-en="Lives">Lives</span> <b id="lives">3</b><br>
-      <span data-ru="Уровень" data-lv="Līmenis" data-en="Level">Level</span> <b id="level">1</b>
+      <span data-en="Lives" data-ru="Жизни" data-lv="Dzīvības">Lives</span> <b id="lives">3</b><br>
+      <span data-en="Level" data-ru="Уровень" data-lv="Līmenis">Level</span> <b id="level">1</b>
       ·
-      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
+      <span data-en="Best" data-ru="Лучший" data-lv="Labākais">Best</span> <b id="best">0</b>
     </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title" data-ru="Арканоид" data-lv="Breakout" data-tr-mode="base">Breakout</h2>
+      <h2 id="title">Breakout</h2>
       <p id="msg"
+         data-en="Drag the paddle. Arrow keys on desktop."
          data-ru="Тяни ракетку. Стрелки на компьютере."
-         data-lv="Velc plātni. Bultas datorā."
-         data-en="Drag the paddle. Arrow keys on desktop.">Drag the paddle. Arrow keys on desktop.</p>
-      <button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
+         data-lv="Velc plātni. Bultas datorā.">Drag the paddle. Arrow keys on desktop.</p>
+      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
     </div>
   </div>
 
   <div class="hint"
+       data-en="Tip: drag anywhere on the board."
        data-ru="Совет: тяни в любом месте поля."
-       data-lv="Padoms: velc jebkur uz lauka."
-       data-en="Tip: drag anywhere on the board.">Tip: drag anywhere on the board.</div>
+       data-lv="Padoms: velc jebkur uz lauka.">Tip: drag anywhere on the board.</div>
 </div>
 
 <script src="lang.js"></script>

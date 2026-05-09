@@ -124,43 +124,43 @@
 <div class="app">
   <header>
     <div class="title-wrap">
-      <a class="back" href="index.html" data-ru="← Меню" data-lv="← Izvēlne" data-tr-mode="base">← Menu</a>
-      <h1 data-ru="Тетрис" data-lv="Tetris" data-tr-mode="base">Tetris</h1>
+      <a class="back" href="index.html" data-en="← Menu" data-ru="Меню" data-lv="Izvēlne">← Menu</a>
+      <h1>Tetris</h1>
     </div>
     <div class="score">
-      <span data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</span> <b id="score">0</b>
+      <span data-en="Score" data-ru="Счёт" data-lv="Rezultāts">Score</span> <b id="score">0</b>
       ·
-      <span data-ru="Линии" data-lv="Līnijas" data-en="Lines">Lines</span> <b id="lines">0</b><br>
-      <span data-ru="Уровень" data-lv="Līmenis" data-en="Level">Level</span> <b id="level">1</b>
+      <span data-en="Lines" data-ru="Линии" data-lv="Līnijas">Lines</span> <b id="lines">0</b><br>
+      <span data-en="Level" data-ru="Уровень" data-lv="Līmenis">Level</span> <b id="level">1</b>
       ·
-      <span data-ru="Лучший" data-lv="Labākais" data-en="Best">Best</span> <b id="best">0</b>
+      <span data-en="Best" data-ru="Лучший" data-lv="Labākais">Best</span> <b id="best">0</b>
     </div>
   </header>
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2 id="title" data-ru="Тетрис" data-lv="Tetris" data-tr-mode="base">Tetris</h2>
+      <h2 id="title">Tetris</h2>
       <p id="msg"
+         data-en="On-screen buttons or arrow keys."
          data-ru="Кнопки на экране или стрелки."
-         data-lv="Pogas uz ekrāna vai bultas."
-         data-en="On-screen buttons or arrow keys.">On-screen buttons or arrow keys.</p>
-      <button class="play-btn" id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
+         data-lv="Pogas uz ekrāna vai bultas.">On-screen buttons or arrow keys.</p>
+      <button class="play-btn" id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
     </div>
   </div>
 
   <div class="controls" id="controls">
-    <button data-act="left">←<span class="label" data-ru="Влево" data-lv="Pa kreisi" data-en="Left">Left</span></button>
-    <button data-act="rotate">⟳<span class="label" data-ru="Поворот" data-lv="Pagriezt" data-en="Rotate">Rotate</span></button>
-    <button data-act="right">→<span class="label" data-ru="Вправо" data-lv="Pa labi" data-en="Right">Right</span></button>
-    <button data-act="soft">↓<span class="label" data-ru="Вниз" data-lv="Lejup" data-en="Soft">Soft</span></button>
-    <button data-act="hard">⤓<span class="label" data-ru="Бросок" data-lv="Mest" data-en="Drop">Drop</span></button>
+    <button data-act="left">←<span class="label" data-en="Left" data-ru="Влево" data-lv="Pa kreisi">Left</span></button>
+    <button data-act="rotate">⟳<span class="label" data-en="Rotate" data-ru="Поворот" data-lv="Pagriezt">Rotate</span></button>
+    <button data-act="right">→<span class="label" data-en="Right" data-ru="Вправо" data-lv="Pa labi">Right</span></button>
+    <button data-act="soft">↓<span class="label" data-en="Soft" data-ru="Вниз" data-lv="Lejup">Soft</span></button>
+    <button data-act="hard">⤓<span class="label" data-en="Drop" data-ru="Бросок" data-lv="Mest">Drop</span></button>
   </div>
 
   <div class="hint"
+       data-en="Keyboard: ← → move, ↑ rotate, ↓ soft drop, space hard drop."
        data-ru="Клавиатура: ← → движение, ↑ поворот, ↓ вниз, пробел — бросок."
-       data-lv="Tastatūra: ← → kustini, ↑ pagriez, ↓ lejup, atstarpe — mest."
-       data-en="Keyboard: ← → move, ↑ rotate, ↓ soft drop, space hard drop.">Keyboard: ← → move, ↑ rotate, ↓ soft drop, space hard drop.</div>
+       data-lv="Tastatūra: ← → kustini, ↑ pagriez, ↓ lejup, atstarpe — mest.">Keyboard: ← → move, ↑ rotate, ↓ soft drop, space hard drop.</div>
 </div>
 
 <script src="lang.js"></script>

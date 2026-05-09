@@ -42,38 +42,55 @@ These are load-bearing for the "feels right on a phone" experience — match the
 3. Add a card to `index.html` (the `<a class="card">` link plus an `.icon.<name>` color rule).
 4. Open a PR — `.github/workflows/auto-merge.yml` squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **There is no human review and no CI gate, so anything that lands ships immediately to Pages.** Test the file in a browser before pushing.
 
-## Language model — RU/LV switcher, English always paired, Spanish sneak-ins
+## Language model — English primary, RU/LV helper, Spanish sneak-ins
 
 The kids are 11 (boy) and 9 (girl). They speak **Russian** and **Latvian** fluently (no need to learn either), are **learning English** as the top priority, and are **picking up Spanish** as a secondary target. The site is structured around this:
 
-- **Top switcher**: 🇷🇺 RU ⇄ 🇱🇻 LV picks the *base* language. State persists in `localStorage` (`playground.base`). The switcher lives in `index.html`; every game inherits the choice automatically.
-- **English is always paired with the base** on every visible UI string — this is the constant English-learning workhorse. Format: `<base> / <english>` (e.g. `Старт / Start`, `Sākt / Start`, `Счёт / Score`).
+- **English is the main language.** Every UI string is shown in English first, full size, full weight.
+- **A small muted "helper" right after** shows the same word in the kid's first language. This is the comprehension scaffold — close enough to read at a glance, dim enough to fade as their English grows.
+- **Top switcher** 🇷🇺 RU ⇄ 🇱🇻 LV picks which helper language is shown. State persists in `localStorage` (`playground.base`). The switcher lives in `index.html`; every game inherits the choice automatically.
 - **Spanish sneaks in 1–3 places per text-bearing game** as cosmetic delight — never on buttons or score labels. Acceptable sneak-in spots:
   - Celebration toasts on win / new high score: `¡Excelente!`, `¡Increíble!`
   - Hero/tagline rotation: ~25% chance the page tagline is in Spanish (`¡Juega y aprende!`)
   - Sprite labels: when an item appears, ~30% chance to flash its Spanish name for ~2 sec (`🐕 perro`, `🌞 sol`)
   - Number / color call-outs: `1 — uno`, `2 — dos` in counting games
 
+### Visual format
+
+Rendered output looks like this (helper word is smaller and ~55% opacity):
+
+```
+Start  старт           ← English big, RU helper smaller and muted
+Score  счёт   12       ← labels follow the same pattern
+```
+
 ### How to use the helper
 
-Every game must include the shared helper near the top of `<body>`:
+Every text-bearing game must include the shared helper near the top of `<body>`:
 
 ```html
 <script src="/lang.js"></script>
 ```
 
-For static HTML strings, use `data-ru/data-lv/data-en` attributes — `lang.js` swaps them on load:
+For static HTML strings, use `data-en/data-ru/data-lv` attributes — `lang.js` swaps them on load, rendering English as the visible text plus a muted helper span:
 
 ```html
-<button id="startBtn" data-ru="Старт" data-lv="Sākt" data-en="Start">Start</button>
-<div data-ru="Счёт" data-lv="Rezultāts" data-en="Score">Score</div>
-<h1 data-ru="Змейка" data-lv="Čūska" data-tr-mode="base">Snake</h1>  <!-- base only -->
+<button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+<span data-en="Score" data-ru="Счёт" data-lv="Rezultāts">Score</span>
 ```
 
-For dynamic strings set in JS, use `Lang.t(ru, lv, en)`:
+Skip translation entirely on proper nouns or visually-tight elements — they just stay English:
+
+```html
+<h1>Snake</h1>   <!-- English-only, no helper, no clutter -->
+```
+
+For dynamic strings set in JS, use `Lang.t(ru, lv, en)` — note Russian and Latvian come first in the function args, but **English is rendered first in the output**:
 
 ```js
 titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
+// → "Game over · Конец игры"
+
 startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
 
 // Spanish sneak-in (25% chance) — replaces the win toast with a Spanish phrase.
@@ -85,10 +102,11 @@ toast(Lang.esWord('🐕'));            // 'perro'
 ### Rules every text-bearing game must follow
 
 1. Add `<script src="/lang.js"></script>` once.
-2. **Never hardcode visible strings.** Use `data-ru/data-lv/data-en` for static, `Lang.t(...)` for dynamic.
-3. **Never crowd the UI with a third language.** Two-language max on buttons/scores/messages (base + EN).
-4. **Sneak Spanish into 1–3 places** per game — celebrations, taglines, occasional sprite labels, ★★ mini-game modes. Don't sprinkle it everywhere.
-5. Proper nouns (game name in `<h1>`, sprite names like "Snake") may use `data-tr-mode="base"` to show base only and skip the `/ English` suffix.
+2. **Never hardcode visible strings.** Use `data-en/data-ru/data-lv` for static, `Lang.t(...)` for dynamic.
+3. **English is always the primary visible text** — never RU or LV alone in pair mode.
+4. **Never crowd the UI with a third language.** Two-language max on buttons/scores/messages (English + helper).
+5. **Sneak Spanish into 1–3 places** per game — celebrations, taglines, occasional sprite labels, ★★ mini-game modes. Don't sprinkle it everywhere.
+6. Game proper nouns (Snake, Tetris, Breakout) may be left as plain HTML with no `data-*` attrs — they're already English. Or use `data-tr-mode="en"` to be explicit.
 
 ## Genre cheatsheet (Claude-facing, kids never see this)
 
