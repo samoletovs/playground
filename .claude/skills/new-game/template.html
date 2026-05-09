@@ -38,11 +38,12 @@
   }
   header {
     width: 100%;
-    max-width: 480px;
+    max-width: 800px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex: 0 0 auto;
   }
   .title-wrap { display: flex; align-items: center; gap: 10px; }
   .back {
@@ -56,17 +57,20 @@
   h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
   .score { font-variant-numeric: tabular-nums; color: var(--muted); }
   .score b { color: var(--text); }
+  /* play-area is a flex item that GROWS to fill leftover vertical space.
+     min-height: 0 lets it shrink correctly inside flex. */
+  .play-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* The board is sized in JS by fitCanvas() to fill the play-area while
+     preserving aspect ratio. CSS just sets visuals — no layout math here. */
   .board-wrap {
     position: relative;
-    /* Scale to the largest square that fits BOTH the viewport width AND the
-       leftover height (after header + start button + hint). This makes the
-       game fill the screen on iPhone AND on iPad — change the aspect-ratio
-       below if your game isn't 1:1. For 3:4 use:
-       width: min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px);
-       For 1:2 (tall) use:
-       width: min(100vw - 24px, calc((100dvh - 200px) / 2), 500px); */
-    width: min(100vw - 24px, calc(100dvh - 200px), 800px);
-    aspect-ratio: 1 / 1;
     background: var(--panel);
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
@@ -102,7 +106,7 @@
     cursor: pointer;
   }
   button:active { transform: translateY(1px); }
-  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 480px; }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 800px; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -119,12 +123,14 @@
     </div>
   </header>
 
-  <div class="board-wrap" id="board">
-    <canvas id="game"></canvas>
-    <div class="overlay show" id="overlay">
-      <h2 id="title">{{TITLE_EN}}</h2>
-      <p id="msg" data-en="{{HINT_EN}}" data-ru="{{HINT_RU}}" data-lv="{{HINT_LV}}">{{HINT_EN}}</p>
-      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+      <div class="overlay show" id="overlay">
+        <h2 id="title">{{TITLE_EN}}</h2>
+        <p id="msg" data-en="{{HINT_EN}}" data-ru="{{HINT_RU}}" data-lv="{{HINT_LV}}">{{HINT_EN}}</p>
+        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      </div>
     </div>
   </div>
 
@@ -138,6 +144,7 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const board = document.getElementById('board');
+  const playArea = document.querySelector('.play-area');
   const overlay = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
   const titleEl = document.getElementById('title');
@@ -147,6 +154,11 @@
 
   const BEST_KEY = '{{SLUG}}.best';
 
+  // Game shape: width / height aspect ratio, and a sane cap on huge screens.
+  // Change these per game: 3/4 portrait, 4/3 landscape, 10/20 tall (Tetris-style).
+  const BOARD_AR = 1 / 1;
+  const BOARD_MAX = 800;
+
   let score = 0;
   let best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
   bestEl.textContent = best;
@@ -154,15 +166,27 @@
   let alive = false;
   let raf;
 
+  // Sizes the board to fill the play-area while keeping aspect ratio, then
+  // scales the canvas backing store by devicePixelRatio so it stays sharp.
+  // Runs on load + on every play-area resize (orientation rotate, devtools, etc).
   function fitCanvas() {
-    const rect = board.getBoundingClientRect();
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width = w + 'px';
+    board.style.height = h + 'px';
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
   window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) {
+    new ResizeObserver(fitCanvas).observe(playArea);
+  }
 
   function reset() {
     score = 0;

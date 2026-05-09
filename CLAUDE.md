@@ -29,17 +29,42 @@ These are load-bearing for the "feels right on a phone" experience — match the
 
 - **Mobile viewport**: `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">` and `<meta name="theme-color" content="#0b1020">`.
 - **Layout**: `100dvh` height, `padding: max(env(safe-area-inset-top), …)`, `overflow: hidden` on body, `-webkit-tap-highlight-color: transparent`, `user-select: none`.
-- **Play area scales to BOTH phone AND tablet**: the kids play on iPhone 13 (~390px wide) and iPad (~1000px wide). Don't cap the board at a fixed 480px or it looks like a postage stamp on iPad. Use this pattern for `.board-wrap`:
+- **Play area auto-fits ANY screen** (iPhone 13 ~390px, iPad 768/1024px, desktop, landscape, portrait — all of it). The `new-game` template ships a JS-driven sizing pattern that works everywhere with no magic numbers per device:
+
+  **CSS** — body is a column flex; the play-area grows to fill leftover height; the board takes its size from JS:
   ```css
-  .board-wrap {
-    /* width = the smaller of: viewport width minus margin, OR available
-       height multiplied by aspect ratio. So the board fills whichever
-       dimension is smaller, keeping its aspect ratio intact. */
-    width: min(100vw - 24px, calc(100dvh - 200px), 800px);  /* 1:1 (square) */
-    aspect-ratio: 1 / 1;
+  .app { display: flex; flex-direction: column; height: 100dvh; gap: 12px; }
+  header, .hint { flex: 0 0 auto; }
+  .play-area {
+    flex: 1 1 auto; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .board-wrap { /* JS sets width/height — CSS just sets visuals */
+    position: relative; background: var(--panel); border-radius: 14px; touch-action: none;
   }
   ```
-  For 3:4 boards: `min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px)`. For 1:2 (tall): `min(100vw - 24px, calc((100dvh - 200px) / 2), 500px)`. The `200px` allowance is for header + start overlay + hint; bump it to `220px` if your game has bigger controls. The third arg is a sane max for very large screens.
+
+  **JS** — two constants per game (aspect ratio + max size on huge screens), then `fitCanvas` does both the board sizing AND canvas DPR scaling. ResizeObserver makes it react to ANY size change (orientation rotate, devtools, etc):
+  ```js
+  const BOARD_AR = 1 / 1;     // game shape: 3/4 portrait, 4/3 landscape, 10/20 tall
+  const BOARD_MAX = 800;      // sane cap on huge screens
+  function fitCanvas() {
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width = w + 'px'; board.style.height = h + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
+  ```
+
+  HTML structure: `<div class="app"><header>...</header><div class="play-area"><div class="board-wrap" id="board"><canvas></canvas></div></div><div class="hint">...</div></div>`. **Inherit this pattern for every new game** — works on iPhone, iPad, desktop, and orientation rotation without per-device tweaks. The only per-game customizations are `BOARD_AR` (aspect ratio) and `BOARD_MAX` (large-screen cap).
 - **Play area**: a `.board-wrap` element with `touch-action: none` so swipe/drag doesn't scroll the page. Canvas inside is sized in CSS pixels and the backing store is scaled by `devicePixelRatio` in JS.
 - **Color tokens**: shared palette via `:root` CSS vars (`--bg #0b1020`, `--panel #131a33`, `--grid #1b2347`, `--text #e5e7eb`, `--muted #94a3b8`). Per-game accent colors are added as extra vars.
 - **Header**: `← Menu` back link (`<a class="back" href="index.html">`) on the left, score readout on the right.
