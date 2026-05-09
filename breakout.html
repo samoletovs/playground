@@ -39,11 +39,12 @@
   }
   header {
     width: 100%;
-    max-width: 480px;
+    max-width: 800px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex: 0 0 auto;
   }
   .title-wrap { display: flex; align-items: center; gap: 10px; }
   .back {
@@ -57,17 +58,22 @@
   h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
   .score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; text-align: right; line-height: 1.3; }
   .score b { color: var(--text); }
+  .play-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .board-wrap {
     position: relative;
-    /* Width = the smaller of: 90% of viewport width, or 3/4 of available height.
-       Scales up to ~600px on iPad without overflowing on iPhone. */
-    width: min(100vw - 24px, calc((100dvh - 200px) * 3 / 4), 700px);
-    aspect-ratio: 3 / 4;
     background: var(--panel);
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     overflow: hidden;
     touch-action: none;
+    transition: transform 0.05s linear;
   }
   canvas { width: 100%; height: 100%; display: block; }
   .overlay {
@@ -78,7 +84,7 @@
     justify-content: center;
     flex-direction: column;
     gap: 12px;
-    background: rgba(11, 16, 32, 0.82);
+    background: rgba(11, 16, 32, 0.86);
     backdrop-filter: blur(4px);
     text-align: center;
     padding: 16px;
@@ -99,7 +105,26 @@
     box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
   }
   button:active { transform: translateY(1px); }
-  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 480px; }
+  .toast {
+    position: absolute;
+    top: 14%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.4s ease;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 800px; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -119,31 +144,47 @@
     </div>
   </header>
 
-  <div class="board-wrap" id="board">
-    <canvas id="game"></canvas>
-    <div class="overlay show" id="overlay">
-      <h2 id="title">Breakout</h2>
-      <p id="msg"
-         data-en="Drag the paddle. Arrow keys on desktop."
-         data-ru="Тяни ракетку. Стрелки на компьютере."
-         data-lv="Velc plātni. Bultas datorā.">Drag the paddle. Arrow keys on desktop.</p>
-      <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+      <div class="toast" id="toast"></div>
+      <div class="overlay show" id="overlay">
+        <h2 id="title">Breakout</h2>
+        <p id="msg"
+           data-en="Drag the paddle. Catch the falling power-ups!"
+           data-ru="Тяни ракетку. Лови падающие бонусы!"
+           data-lv="Velc plātni. Ķer krītošos bonusus!">Drag the paddle. Catch the falling power-ups!</p>
+        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      </div>
     </div>
   </div>
 
   <div class="hint"
-       data-en="Tip: drag anywhere on the board."
-       data-ru="Совет: тяни в любом месте поля."
-       data-lv="Padoms: velc jebkur uz lauka.">Tip: drag anywhere on the board.</div>
+       data-en="🟢 wider · 🔵 slower · 🟠 multi-ball · 🔴 extra life"
+       data-ru="🟢 шире · 🔵 медленнее · 🟠 много мячей · 🔴 жизнь"
+       data-lv="🟢 platāks · 🔵 lēnāks · 🟠 daudz bumbu · 🔴 dzīvība">🟢 wider · 🔵 slower · 🟠 multi-ball · 🔴 extra life</div>
 </div>
 
 <script src="lang.js"></script>
 
 <script>
 (() => {
+  // ============================================================================
+  // Breakout / Arkanoid-style — features added:
+  //   • Power-ups falling from random bricks (Wider, Slower, Multi-ball, Extra-life)
+  //   • Multi-hit bricks (color shifts as they take damage)
+  //   • Particle burst on brick break
+  //   • Ball trail
+  //   • Combo multiplier (consecutive bricks without paddle bounce)
+  //   • Screen shake on power-up catch / multi-ball spawn
+  //   • Sound effects (Web Audio oscillator, lazy-init for iOS Safari)
+  //   • Multiple level layouts that get harder
+  // ============================================================================
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const board = document.getElementById('board');
+  const playArea = document.querySelector('.play-area');
   const overlay = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
   const titleEl = document.getElementById('title');
@@ -152,10 +193,17 @@
   const livesEl = document.getElementById('lives');
   const levelEl = document.getElementById('level');
   const bestEl = document.getElementById('best');
+  const toastEl = document.getElementById('toast');
 
+  // Logical playfield (everything is drawn in these units; canvas scales).
   const W = 300;
   const H = 400;
-  const PADDLE_W = 60;
+
+  // Game-shape constants for the responsive sizing pattern.
+  const BOARD_AR = 3 / 4;    // 3:4 portrait
+  const BOARD_MAX = 700;
+
+  const PADDLE_BASE_W = 60;
   const PADDLE_H = 8;
   const BALL_R = 5;
   const BRICK_ROWS = 6;
@@ -163,37 +211,122 @@
   const BRICK_W = W / BRICK_COLS;
   const BRICK_H = 14;
   const BRICK_TOP = 40;
+  // Brick palette by row (top is most points, hardest).
   const ROW_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22d3ee', '#a78bfa'];
+  // Power-up types: { id, color, label, ru, lv }
+  const POWER_TYPES = [
+    { id: 'wide',  color: '#4ade80', label: 'W', ru: 'Шире',     lv: 'Platāks',     en: 'Wider' },
+    { id: 'slow',  color: '#60a5fa', label: 'S', ru: 'Медленнее', lv: 'Lēnāks',      en: 'Slower' },
+    { id: 'multi', color: '#f97316', label: 'M', ru: 'Много!',   lv: 'Daudz!',      en: 'Multi!' },
+    { id: 'life',  color: '#f87171', label: '+', ru: '+ Жизнь',  lv: '+ Dzīvība',   en: '+ Life'  },
+  ];
+  // Chance (per brick break) that a power-up drops.
+  const POWER_DROP_RATE = 0.18;
+  const POWER_FALL_SPEED = 1.2;
 
-  let dpr = 1;
-  let scale = 1;
-  let paddle, ball, bricks, score, lives, level, best, alive, running, raf;
+  let paddle, balls, bricks, powerups, particles, score, lives, level, best, alive, running, raf;
   let leftKey = false, rightKey = false;
+  let widePaddleUntil = 0;        // timestamp ms
+  let slowBallUntil = 0;          // timestamp ms
+  let combo = 0;                  // consecutive brick hits without paddle bounce
+  let shakeUntil = 0, shakeMag = 0;
+
   best = parseInt(localStorage.getItem('breakout.best') || '0', 10);
   bestEl.textContent = best;
 
+  // --------------------------------------------------------------------------
+  // Audio (lazy-init: iOS Safari blocks AudioContext until first user gesture)
+  // --------------------------------------------------------------------------
+  let audio = null;
+  function ensureAudio() {
+    if (audio) {
+      if (audio.state === 'suspended') audio.resume().catch(() => {});
+      return;
+    }
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (_) { audio = null; }
+  }
+  function beep(freq, dur, vol = 0.18, type = 'square', slide = 0) {
+    if (!audio) return;
+    try {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.connect(gain); gain.connect(audio.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audio.currentTime);
+      if (slide) osc.frequency.exponentialRampToValueAtTime(freq + slide, audio.currentTime + dur);
+      gain.gain.setValueAtTime(vol, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
+      osc.start(); osc.stop(audio.currentTime + dur);
+    } catch (_) {}
+  }
+  const sfx = {
+    paddle:  () => beep(420, 0.05, 0.22),
+    wall:    () => beep(280, 0.04, 0.14),
+    brick:   () => beep(720, 0.06, 0.18, 'square'),
+    brickHard: () => beep(180, 0.10, 0.22, 'sawtooth'),
+    power:   () => { beep(540, 0.08, 0.22); setTimeout(() => beep(720, 0.10, 0.22), 70); setTimeout(() => beep(960, 0.14, 0.22), 150); },
+    lose:    () => beep(120, 0.30, 0.22, 'sawtooth', -60),
+    levelUp: () => { beep(523, 0.12); setTimeout(() => beep(659, 0.12), 130); setTimeout(() => beep(784, 0.20), 260); },
+  };
+
+  // --------------------------------------------------------------------------
+  // Responsive sizing (works on iPhone, iPad, desktop, orientation rotate).
+  // --------------------------------------------------------------------------
   function fitCanvas() {
-    const rect = board.getBoundingClientRect();
-    dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    scale = canvas.width / W / dpr;
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width = w + 'px';
+    board.style.height = h + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    // Map logical (W, H) to backing pixels (w*dpr, h*dpr).
+    const sx = (w * dpr) / W, sy = (h * dpr) / H;
+    ctx.setTransform(sx, 0, 0, sy, 0, 0);
     draw();
   }
   window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
+
+  // --------------------------------------------------------------------------
+  // Level layouts — array of (row,col)→hp grids. HP=0 means no brick at that cell.
+  // --------------------------------------------------------------------------
+  function layoutFor(lvl) {
+    const layouts = [
+      // Level 1 — full rectangle, all 1 HP
+      () => Array.from({ length: BRICK_ROWS }, (_, r) => Array(BRICK_COLS).fill(1)),
+      // Level 2 — top 2 rows are 2 HP, rest 1 HP
+      () => Array.from({ length: BRICK_ROWS }, (_, r) => Array(BRICK_COLS).fill(r < 2 ? 2 : 1)),
+      // Level 3 — pyramid
+      () => Array.from({ length: BRICK_ROWS }, (_, r) => Array.from({ length: BRICK_COLS }, (_, c) =>
+        (c >= r && c < BRICK_COLS - r) ? (r === 0 ? 3 : r < 2 ? 2 : 1) : 0)),
+      // Level 4 — checkerboard
+      () => Array.from({ length: BRICK_ROWS }, (_, r) => Array.from({ length: BRICK_COLS }, (_, c) =>
+        ((r + c) % 2 === 0) ? 2 : 1)),
+      // Level 5 — solid wall, all 2 HP, top row 3 HP
+      () => Array.from({ length: BRICK_ROWS }, (_, r) => Array(BRICK_COLS).fill(r === 0 ? 3 : 2)),
+    ];
+    return layouts[Math.min(lvl - 1, layouts.length - 1)]();
+  }
 
   function buildBricks() {
+    const grid = layoutFor(level);
     const arr = [];
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
+        const hp = grid[r][c];
+        if (!hp) continue;
         arr.push({
-          x: c * BRICK_W,
-          y: BRICK_TOP + r * BRICK_H,
-          w: BRICK_W,
-          h: BRICK_H,
-          color: ROW_COLORS[r],
+          x: c * BRICK_W, y: BRICK_TOP + r * BRICK_H,
+          w: BRICK_W, h: BRICK_H,
+          color: ROW_COLORS[r % ROW_COLORS.length],
           points: (BRICK_ROWS - r) * 10,
+          hp,
+          maxHp: hp,
           alive: true,
         });
       }
@@ -201,26 +334,42 @@
     return arr;
   }
 
+  // --------------------------------------------------------------------------
+  // Game state
+  // --------------------------------------------------------------------------
+  function paddleW() {
+    return widePaddleUntil > performance.now() ? PADDLE_BASE_W * 1.6 : PADDLE_BASE_W;
+  }
+  function speedMul() {
+    return slowBallUntil > performance.now() ? 0.65 : 1;
+  }
+
   function resetBall() {
-    paddle.x = (W - PADDLE_W) / 2;
-    ball.x = W / 2;
-    ball.y = H - 40;
+    paddle.x = (W - paddleW()) / 2;
     const angle = (Math.random() * 0.6 - 0.3) - Math.PI / 2;
-    const speed = 3 + (level - 1) * 0.4;
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-    ball.attached = true;
+    const baseSpeed = 3 + (level - 1) * 0.35;
+    balls = [{
+      x: W / 2, y: H - 40,
+      vx: Math.cos(angle) * baseSpeed,
+      vy: Math.sin(angle) * baseSpeed,
+      attached: true,
+    }];
   }
 
   function reset(fullReset) {
-    paddle = { x: (W - PADDLE_W) / 2, y: H - 20, w: PADDLE_W, h: PADDLE_H };
-    ball = { x: W / 2, y: H - 40, vx: 0, vy: 0, attached: true };
+    paddle = { x: (W - PADDLE_BASE_W) / 2, y: H - 20, w: PADDLE_BASE_W, h: PADDLE_H };
+    balls = [{ x: W / 2, y: H - 40, vx: 0, vy: 0, attached: true }];
+    powerups = [];
+    particles = [];
+    widePaddleUntil = 0;
+    slowBallUntil = 0;
+    combo = 0;
     if (fullReset) {
       score = 0;
       lives = 3;
       level = 1;
-      bricks = buildBricks();
     }
+    bricks = buildBricks();
     resetBall();
     alive = true;
     scoreEl.textContent = score;
@@ -230,7 +379,10 @@
 
   function nextLevel() {
     level += 1;
+    sfx.levelUp();
+    showToast(Lang.t(`Уровень ${level}!`, `Līmenis ${level}!`, `Level ${level}!`));
     bricks = buildBricks();
+    powerups = [];
     resetBall();
     levelEl.textContent = level;
   }
@@ -238,6 +390,10 @@
   function loseLife() {
     lives -= 1;
     livesEl.textContent = lives;
+    combo = 0;
+    powerups = [];
+    sfx.lose();
+    shake(2, 200);
     if (lives <= 0) return die();
     resetBall();
   }
@@ -247,7 +403,7 @@
     running = false;
     if (score > best) {
       best = score;
-      localStorage.setItem('breakout.best', String(best));
+      try { localStorage.setItem('breakout.best', String(best)); } catch (_) {}
       bestEl.textContent = best;
     }
     titleEl.textContent = Lang.t('Конец игры', 'Spēles beigas', 'Game over');
@@ -257,88 +413,270 @@
       `Rezultāts ${score}. Spied Sākt.`,
       `Score ${score}. Tap Start to try again.`
     );
-    // Spanish sneak-in on a new high score.
     msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
     startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
     overlay.classList.add('show');
   }
 
+  // --------------------------------------------------------------------------
+  // Effects
+  // --------------------------------------------------------------------------
+  function spawnParticles(x, y, color, count = 8) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 1 + Math.random() * 2;
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.5,
+        life: 30 + Math.random() * 15,
+        size: 2 + Math.random() * 1.5,
+        color,
+      });
+    }
+  }
+  function shake(magnitude, durationMs) {
+    shakeMag = Math.max(shakeMag, magnitude);
+    shakeUntil = performance.now() + durationMs;
+  }
+  let toastTimeout = null;
+  function showToast(text, ms = 900) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toastEl.classList.remove('show'), ms);
+  }
+
+  // --------------------------------------------------------------------------
+  // Power-ups
+  // --------------------------------------------------------------------------
+  function maybeDropPowerup(b) {
+    if (Math.random() > POWER_DROP_RATE) return;
+    const t = POWER_TYPES[Math.floor(Math.random() * POWER_TYPES.length)];
+    powerups.push({
+      x: b.x + b.w / 2, y: b.y + b.h / 2,
+      vy: POWER_FALL_SPEED,
+      type: t,
+    });
+  }
+
+  function applyPowerup(t) {
+    sfx.power();
+    shake(2.5, 250);
+    if (t.id === 'wide') {
+      widePaddleUntil = performance.now() + 12000;
+      showToast(Lang.t('Шире!', 'Platāks!', 'Wider paddle!'));
+    } else if (t.id === 'slow') {
+      slowBallUntil = performance.now() + 8000;
+      showToast(Lang.t('Медленнее!', 'Lēnāks!', 'Slow ball!'));
+    } else if (t.id === 'multi') {
+      const seed = balls[0] || { x: paddle.x + paddle.w / 2, y: paddle.y - 8, vx: 3, vy: -3 };
+      const sp = Math.hypot(seed.vx, seed.vy) || 4;
+      for (let i = 0; i < 2; i++) {
+        const ang = (Math.random() * 0.8 - 0.4) - Math.PI / 2;
+        balls.push({
+          x: seed.x, y: seed.y,
+          vx: Math.cos(ang) * sp,
+          vy: Math.sin(ang) * sp,
+          attached: false,
+        });
+      }
+      showToast(Lang.pickEs('¡Multi!', Lang.t('Много мячей!', 'Daudz bumbu!', 'Multi-ball!'), 0.4));
+    } else if (t.id === 'life') {
+      lives += 1;
+      livesEl.textContent = lives;
+      showToast(Lang.t('+ Жизнь', '+ Dzīvība', '+ Life'));
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Step (per-frame logic)
+  // --------------------------------------------------------------------------
   function step() {
-    if (leftKey) paddle.x -= 5;
+    paddle.w = paddleW();
+    if (leftKey)  paddle.x -= 5;
     if (rightKey) paddle.x += 5;
     paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
 
-    if (ball.attached) {
-      ball.x = paddle.x + paddle.w / 2;
-      ball.y = paddle.y - BALL_R - 1;
-      return;
-    }
+    const sm = speedMul();
 
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    // Move every ball.
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const ball = balls[i];
+      if (ball.attached) {
+        ball.x = paddle.x + paddle.w / 2;
+        ball.y = paddle.y - BALL_R - 1;
+        continue;
+      }
+      ball.x += ball.vx * sm;
+      ball.y += ball.vy * sm;
 
-    if (ball.x < BALL_R) { ball.x = BALL_R; ball.vx = -ball.vx; }
-    if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -ball.vx; }
-    if (ball.y < BALL_R) { ball.y = BALL_R; ball.vy = -ball.vy; }
+      if (ball.x < BALL_R) { ball.x = BALL_R; ball.vx = -ball.vx; sfx.wall(); }
+      if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -ball.vx; sfx.wall(); }
+      if (ball.y < BALL_R) { ball.y = BALL_R; ball.vy = -ball.vy; sfx.wall(); }
 
-    if (ball.vy > 0 &&
-        ball.y + BALL_R >= paddle.y &&
-        ball.y + BALL_R <= paddle.y + paddle.h + 6 &&
-        ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
-      ball.y = paddle.y - BALL_R;
-      const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
-      const speed = Math.hypot(ball.vx, ball.vy);
-      const angle = hit * (Math.PI / 3) - Math.PI / 2;
-      ball.vx = Math.cos(angle) * speed;
-      ball.vy = Math.sin(angle) * speed;
-    }
+      // Paddle bounce
+      if (ball.vy > 0 &&
+          ball.y + BALL_R >= paddle.y &&
+          ball.y + BALL_R <= paddle.y + paddle.h + 6 &&
+          ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) {
+        ball.y = paddle.y - BALL_R;
+        const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+        const speed = Math.hypot(ball.vx, ball.vy);
+        const angle = hit * (Math.PI / 3) - Math.PI / 2;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+        sfx.paddle();
+        combo = 0;
+      }
 
-    for (const b of bricks) {
-      if (!b.alive) continue;
-      if (ball.x + BALL_R > b.x && ball.x - BALL_R < b.x + b.w &&
-          ball.y + BALL_R > b.y && ball.y - BALL_R < b.y + b.h) {
-        b.alive = false;
-        score += b.points;
-        scoreEl.textContent = score;
-        const prevX = ball.x - ball.vx;
-        const prevY = ball.y - ball.vy;
-        if (prevX <= b.x || prevX >= b.x + b.w) ball.vx = -ball.vx;
-        else ball.vy = -ball.vy;
-        break;
+      // Brick collisions (find first hit each frame so geometry stays sane)
+      for (const b of bricks) {
+        if (!b.alive) continue;
+        if (ball.x + BALL_R > b.x && ball.x - BALL_R < b.x + b.w &&
+            ball.y + BALL_R > b.y && ball.y - BALL_R < b.y + b.h) {
+          // Damage
+          b.hp -= 1;
+          if (b.hp <= 0) {
+            b.alive = false;
+            combo += 1;
+            const bonus = combo > 1 ? Math.min(combo - 1, 5) * 5 : 0;
+            score += b.points + bonus;
+            scoreEl.textContent = score;
+            spawnParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 10);
+            sfx.brick();
+            maybeDropPowerup(b);
+            if (combo >= 4) {
+              showToast(Lang.pickEs('¡Combo x' + combo + '!', `Combo x${combo}!`, 0.3), 600);
+            }
+          } else {
+            // Hit but not destroyed: flash and play harder sound
+            spawnParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 4);
+            sfx.brickHard();
+          }
+          // Bounce direction by entry side
+          const prevX = ball.x - ball.vx * sm;
+          const prevY = ball.y - ball.vy * sm;
+          if (prevX <= b.x || prevX >= b.x + b.w) ball.vx = -ball.vx;
+          else ball.vy = -ball.vy;
+          break;
+        }
+      }
+
+      if (ball.y > H + BALL_R) {
+        balls.splice(i, 1);
       }
     }
 
-    if (ball.y > H + BALL_R) loseLife();
+    if (balls.length === 0) loseLife();
+
+    // Power-ups fall
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      const p = powerups[i];
+      p.y += p.vy;
+      // Catch on paddle?
+      if (p.y + 6 >= paddle.y && p.y - 6 <= paddle.y + paddle.h &&
+          p.x >= paddle.x && p.x <= paddle.x + paddle.w) {
+        applyPowerup(p.type);
+        powerups.splice(i, 1);
+      } else if (p.y > H + 8) {
+        powerups.splice(i, 1);
+      }
+    }
+
+    // Particles age
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.08;  // gravity
+      p.life -= 1;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
 
     if (bricks.every(b => !b.alive)) nextLevel();
   }
 
+  // --------------------------------------------------------------------------
+  // Draw
+  // --------------------------------------------------------------------------
   function draw() {
-    ctx.fillStyle = '#131a33';
-    ctx.fillRect(0, 0, W, H);
+    // Screen shake offset
+    let ox = 0, oy = 0;
+    if (shakeUntil > performance.now()) {
+      ox = (Math.random() - 0.5) * shakeMag * 2;
+      oy = (Math.random() - 0.5) * shakeMag * 2;
+    }
+    ctx.save();
+    ctx.translate(ox, oy);
 
+    ctx.fillStyle = '#131a33';
+    ctx.fillRect(-ox, -oy, W, H);
+
+    // Bricks (color fades as HP decreases)
     for (const b of bricks || []) {
       if (!b.alive) continue;
+      const dmg = (b.maxHp - b.hp) / b.maxHp;
       ctx.fillStyle = b.color;
+      ctx.globalAlpha = 1 - dmg * 0.4;
       ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, 3);
+      // HP indicator on multi-hit bricks
+      if (b.maxHp > 1) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.hp, b.x + b.w / 2, b.y + b.h / 2 + 3);
+      }
+      ctx.globalAlpha = 1;
     }
 
+    // Particles
+    for (const p of particles || []) {
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, p.life / 40);
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+
+    // Power-ups (falling capsules)
+    for (const p of powerups || []) {
+      ctx.fillStyle = p.type.color;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(p.x - 9, p.y - 6, 18, 12, 4) : ctx.rect(p.x - 9, p.y - 6, 18, 12);
+      ctx.fill();
+      ctx.fillStyle = '#04162e';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.type.label, p.x, p.y + 3);
+    }
+
+    // Paddle (color shifts when wider/active)
     if (paddle) {
-      ctx.fillStyle = 'var(--paddle)';
-      ctx.fillStyle = '#f59e0b';
+      const isWide = widePaddleUntil > performance.now();
+      ctx.fillStyle = isWide ? '#4ade80' : '#f59e0b';
       ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.fillRect(paddle.x, paddle.y, paddle.w, 2);
     }
 
-    if (ball) {
+    // Ball trail (drawn before ball for proper z-order)
+    for (const ball of balls || []) {
+      // simple trail: 3 fading echoes
+      for (let t = 1; t <= 3; t++) {
+        ctx.globalAlpha = 0.18 * (4 - t);
+        ctx.fillStyle = '#fef3c7';
+        ctx.beginPath();
+        ctx.arc(ball.x - ball.vx * t * 0.6, ball.y - ball.vy * t * 0.6, BALL_R * (1 - t * 0.18), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
       ctx.fillStyle = '#fef3c7';
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    ctx.restore();
   }
 
   function loop() {
@@ -349,6 +687,9 @@
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Controls
+  // --------------------------------------------------------------------------
   function start() {
     cancelAnimationFrame(raf);
     overlay.classList.remove('show');
@@ -358,16 +699,21 @@
   }
 
   function launchBall() {
-    if (alive && ball && ball.attached) ball.attached = false;
+    if (alive && balls.length && balls[0].attached) balls[0].attached = false;
   }
 
-  startBtn.addEventListener('click', () => { start(); setTimeout(launchBall, 300); });
+  startBtn.addEventListener('click', () => {
+    ensureAudio();
+    start();
+    setTimeout(launchBall, 300);
+  });
 
   window.addEventListener('keydown', (e) => {
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'a') leftKey = true;
     else if (k === 'ArrowRight' || k === 'd') rightKey = true;
     else if (k === ' ' || k === 'Enter') {
+      ensureAudio();
       if (!alive || overlay.classList.contains('show')) start();
       else launchBall();
     }
@@ -384,6 +730,7 @@
   }
   let dragging = false;
   board.addEventListener('pointerdown', (e) => {
+    ensureAudio();
     dragging = true;
     if (paddle) paddle.x = Math.max(0, Math.min(W - paddle.w, localX(e.clientX) - paddle.w / 2));
     launchBall();
