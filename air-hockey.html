@@ -94,6 +94,18 @@
   }
   button.start:active { transform: translateY(1px); }
   .hint { color: var(--muted); font-size: 12px; text-align: center; max-width: 420px; }
+  .pause-btn {
+    position: absolute; top: 8px; right: 8px;
+    appearance: none; border: none;
+    background: rgba(11,16,32,0.65); color: var(--text);
+    font-size: 16px; line-height: 1;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5;
+    backdrop-filter: blur(4px);
+  }
+  .pause-btn.show { display: flex; }
+  .pause-btn:active { transform: translateY(1px); }
 </style>
 </head>
 <body>
@@ -110,6 +122,7 @@
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
+    <button class="pause-btn" id="pauseBtn" aria-label="Pause" data-en="⏸" data-tr-mode="en">⏸</button>
     <div class="overlay show" id="overlay">
       <h2 id="ovTitle">Air Hockey</h2>
       <p id="ovMsg" data-en="Drag your paddle · First to 5 wins!" data-ru="Тяни клюшку · Первый до 5 побеждает!" data-lv="Velc nūju · Pirmais līdz 5 uzvar!">Drag your paddle · First to 5 wins!</p>
@@ -139,9 +152,13 @@
   const hintEl   = document.getElementById('hint');
   const s1El     = document.getElementById('s1');
   const s2El     = document.getElementById('s2');
+  const pauseBtn = document.getElementById('pauseBtn');
 
   const WIN = 5;
-  let alive = false, paused = false, raf;
+  let alive = false, paused = false, userPaused = false, raf;
+  let lastT = 0;
+  // Velocities are tuned for 60 FPS — dt is normalized as a multiplier of 1/60s.
+  const TARGET_FRAME_MS = 1000 / 60;
   let W = 1, H = 1;
   let scores = [0, 0];
   let aiMode = true; // default: vs bot
@@ -162,6 +179,7 @@
   let audioCtx;
   function ac() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
     return audioCtx;
   }
   function tone(freq, dur, vol, type) {
@@ -256,6 +274,7 @@
       ovMsg.textContent = Lang.pickEs(`${Lang.esWin()} ${scores[0]}–${scores[1]}`, result, 0.6);
       startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
       overlay.classList.add('show');
+      pauseBtn.classList.remove('show');
       return;
     }
 
@@ -313,24 +332,26 @@
   }
 
   // ── Physics ──────────────────────────────────────────────────────────────────
-  function movePaddles() {
+  function movePaddles(dt) {
     const ks = Math.min(W, H) * 0.009;
-    if (keys['ArrowLeft'])  paddles[0].vx -= ks * 0.4;
-    if (keys['ArrowRight']) paddles[0].vx += ks * 0.4;
-    if (keys['ArrowUp'])    paddles[0].vy -= ks * 0.4;
-    if (keys['ArrowDown'])  paddles[0].vy += ks * 0.4;
+    if (keys['ArrowLeft'])  paddles[0].vx -= ks * 0.4 * dt;
+    if (keys['ArrowRight']) paddles[0].vx += ks * 0.4 * dt;
+    if (keys['ArrowUp'])    paddles[0].vy -= ks * 0.4 * dt;
+    if (keys['ArrowDown'])  paddles[0].vy += ks * 0.4 * dt;
     if (!aiMode) {
-      if (keys['a'] || keys['A']) paddles[1].vx -= ks * 0.4;
-      if (keys['d'] || keys['D']) paddles[1].vx += ks * 0.4;
-      if (keys['w'] || keys['W']) paddles[1].vy -= ks * 0.4;
-      if (keys['s'] || keys['S']) paddles[1].vy += ks * 0.4;
+      if (keys['a'] || keys['A']) paddles[1].vx -= ks * 0.4 * dt;
+      if (keys['d'] || keys['D']) paddles[1].vx += ks * 0.4 * dt;
+      if (keys['w'] || keys['W']) paddles[1].vy -= ks * 0.4 * dt;
+      if (keys['s'] || keys['S']) paddles[1].vy += ks * 0.4 * dt;
     }
     if (aiMode) aiStep();
 
+    // Friction coefficient per dt (0.70 per frame at 60Hz)
+    const fric = Math.pow(0.70, dt);
     for (let i = 0; i < 2; i++) {
       const p = paddles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.70; p.vy *= 0.70;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= fric; p.vy *= fric;
       p.x = clamp(p.x, p.r, W - p.r);
       p.y = i === 0
         ? clamp(p.y, H / 2 + p.r * 0.5, H - p.r)
@@ -338,14 +359,26 @@
     }
   }
 
-  function step() {
-    movePaddles();
+  function step(dt) {
+    movePaddles(dt);
     if (paused) return;
 
-    puck.x += puck.vx;
-    puck.y += puck.vy;
-    puck.vx *= 0.9988;
-    puck.vy *= 0.9988;
+    // Sub-step physics to prevent tunneling at high puck speeds.
+    // Each sub-step covers at most ~50% of the puck radius of motion.
+    const moveLen = Math.hypot(puck.vx, puck.vy) * dt;
+    const subSteps = Math.max(1, Math.ceil(moveLen / (puck.r * 0.5)));
+    const sdt = dt / subSteps;
+    for (let s = 0; s < subSteps; s++) {
+      if (!stepOnce(sdt)) return; // goal scored — stop further sub-steps
+    }
+  }
+
+  function stepOnce(dt) {
+    puck.x += puck.vx * dt;
+    puck.y += puck.vy * dt;
+    const drag = Math.pow(0.9988, dt);
+    puck.vx *= drag;
+    puck.vy *= drag;
 
     const spd = Math.hypot(puck.vx, puck.vy);
     const minSpd = Math.min(W, H) * 0.002;
@@ -359,11 +392,11 @@
     if (puck.x + puck.r > W) { puck.x = W - puck.r;  puck.vx = -Math.abs(puck.vx); sndWall(); }
 
     if (puck.y - puck.r < 0) {
-      if (inGoal) { goalScored(0); return; }
+      if (inGoal) { goalScored(0); return false; }
       puck.y = puck.r; puck.vy = Math.abs(puck.vy); sndWall();
     }
     if (puck.y + puck.r > H) {
-      if (inGoal) { goalScored(1); return; }
+      if (inGoal) { goalScored(1); return false; }
       puck.y = H - puck.r; puck.vy = -Math.abs(puck.vy); sndWall();
     }
 
@@ -394,6 +427,7 @@
         }
       }
     }
+    return true;
   }
 
   // ── Draw ─────────────────────────────────────────────────────────────────────
@@ -461,9 +495,14 @@
   }
 
   // ── Loop ─────────────────────────────────────────────────────────────────────
-  function loop() {
+  function loop(ts) {
     if (!alive) return;
-    step(); draw();
+    if (!lastT) lastT = ts;
+    // dt is a multiplier: 1 = one 60Hz frame. Cap at 2.5 frames to prevent
+    // huge jumps after tab switch / debugger pause from breaking physics.
+    const dt = Math.min(2.5, (ts - lastT) / TARGET_FRAME_MS);
+    lastT = ts;
+    step(dt); draw();
     raf = requestAnimationFrame(loop);
   }
 
@@ -472,14 +511,41 @@
     overlay.classList.remove('show');
     ovTitle.textContent = 'Air Hockey';
     aiUpdateTimer = 0;
+    userPaused = false;
+    pauseBtn.classList.add('show');
+    pauseBtn.textContent = '⏸';
+    lastT = 0;
     initGame();
-    loop();
+    ac(); // unlock/resume audio on user gesture
+    raf = requestAnimationFrame(loop);
+  }
+
+  function togglePause() {
+    if (!alive) return;
+    userPaused = !userPaused;
+    paused = userPaused;
+    pauseBtn.textContent = userPaused ? '▶' : '⏸';
+    if (!userPaused) lastT = 0; // avoid huge dt jump on resume
   }
 
   startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', togglePause);
+
+  // Auto-pause when tab loses focus or visibility — prevents puck from teleporting
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && alive && !userPaused) togglePause();
+  });
+  window.addEventListener('blur', () => {
+    if (alive && !userPaused) togglePause();
+  });
 
   // ── Pointer controls ──────────────────────────────────────────────────────────
   board.addEventListener('pointerdown', (e) => {
+    // Don't hijack pointers on overlay UI (Start / mode buttons) or pause button —
+    // calling preventDefault() / setPointerCapture on the board swallows the
+    // synthesized click on those buttons and breaks them.
+    if (e.target.closest('.overlay, .pause-btn')) return;
+    if (!alive || paused) return;
     e.preventDefault();
     const rect = board.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -487,7 +553,7 @@
     if (aiMode && idx === 1) return; // top half belongs to bot
     for (const [id, pi] of ptrs) { if (pi === idx) { ptrs.delete(id); break; } }
     ptrs.set(e.pointerId, idx);
-    board.setPointerCapture(e.pointerId);
+    try { board.setPointerCapture(e.pointerId); } catch (_) {}
   });
 
   board.addEventListener('pointermove', (e) => {
@@ -507,6 +573,7 @@
   window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
     if (!alive && (e.key === ' ' || e.key === 'Enter')) start();
+    else if (alive && (e.key === 'p' || e.key === 'P' || e.key === 'Escape')) togglePause();
   });
   window.addEventListener('keyup', (e) => { delete keys[e.key]; });
 
