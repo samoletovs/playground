@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0b1020" />
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a33;
+    --grid: #1b2347;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --accent: {{ACCENT}};
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px);
+    height: 100dvh;
+  }
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .title-wrap { display: flex; align-items: center; gap: 10px; }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
+  .score { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .score b { color: var(--text); }
+  .board-wrap {
+    position: relative;
+    width: min(100vw - 24px, 480px);
+    aspect-ratio: 1 / 1;
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    overflow: hidden;
+    touch-action: none;
+  }
+  canvas { width: 100%; height: 100%; display: block; }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(11, 16, 32, 0.82);
+    backdrop-filter: blur(4px);
+    text-align: center;
+    padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { margin: 0; font-size: 22px; }
+  .overlay p { margin: 0; color: var(--muted); font-size: 14px; }
+  button {
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: #04162e;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  button:active { transform: translateY(1px); }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 480px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title-wrap">
+      <a class="back" href="index.html">← Menu</a>
+      <h1>{{TITLE}}</h1>
+    </div>
+    <div class="score">Score <b id="score">0</b> · Best <b id="best">0</b></div>
+  </header>
+
+  <div class="board-wrap" id="board">
+    <canvas id="game"></canvas>
+    <div class="overlay show" id="overlay">
+      <h2 id="title">{{TITLE}}</h2>
+      <p id="msg">{{HINT}}</p>
+      <button id="startBtn">Play</button>
+    </div>
+  </div>
+
+  <div class="hint">{{HINT}}</div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const board = document.getElementById('board');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const titleEl = document.getElementById('title');
+  const msgEl = document.getElementById('msg');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+
+  const BEST_KEY = '{{SLUG}}.best';
+
+  let score = 0;
+  let best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+  bestEl.textContent = best;
+
+  let alive = false;
+  let raf;
+
+  function fitCanvas() {
+    const rect = board.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', fitCanvas);
+
+  function reset() {
+    score = 0;
+    scoreEl.textContent = score;
+    alive = true;
+  }
+
+  function bumpScore(n) {
+    score += n;
+    scoreEl.textContent = score;
+    if (score > best) {
+      best = score;
+      localStorage.setItem(BEST_KEY, String(best));
+      bestEl.textContent = best;
+    }
+  }
+
+  function gameOver() {
+    alive = false;
+    titleEl.textContent = 'Game Over';
+    msgEl.textContent = `Score ${score}. Tap Play to try again.`;
+    startBtn.textContent = 'Play again';
+    overlay.classList.add('show');
+  }
+
+  function step() {
+    // Fill in per-tick game logic.
+  }
+
+  function draw() {
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+    ctx.fillRect(0, 0, w, h);
+    // Fill in: draw the game state.
+  }
+
+  function loop() {
+    if (!alive) return;
+    step();
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    cancelAnimationFrame(raf);
+    overlay.classList.remove('show');
+    reset();
+    loop();
+  }
+
+  startBtn.addEventListener('click', start);
+
+  window.addEventListener('keydown', (e) => {
+    if (!alive) return;
+    // Fill in: keyboard controls (arrows / WASD / space).
+  });
+
+  board.addEventListener('pointerdown', (e) => {
+    if (!alive) return;
+    // Fill in: touch / pointer controls.
+  });
+
+  fitCanvas();
+  draw();
+})();
+</script>
+</body>
+</html>
