@@ -78,16 +78,20 @@
   }
   button:active { transform: translateY(1px); }
   .controls {
-    width: 100%; max-width: 600px; display: grid;
-    grid-template-columns: repeat(6, 1fr); gap: 6px; flex: 0 0 auto;
+    width: 100%; max-width: 600px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex: 0 0 auto; padding: 0 8px;
   }
+  .ctrl-l { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-r { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .controls button {
     appearance: none; border: none; background: var(--panel);
-    color: var(--text); padding: 10px 0;
-    font-size: 14px; font-weight: 600;
-    border-radius: 8px; cursor: pointer;
-    box-shadow: none; display: flex; align-items: center; justify-content: center;
+    color: var(--text); font-size: 22px; font-weight: 700;
+    border-radius: 12px; cursor: pointer; box-shadow: none;
+    display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 2px;
+    width: 76px; height: 52px;
+    touch-action: manipulation;
   }
   .controls .label { font-size: 9px; color: var(--muted); font-weight: 500; text-transform: uppercase; }
   .controls button:active { background: var(--grid); }
@@ -149,12 +153,16 @@
   </div>
 
   <div class="controls" id="controls">
-    <button data-act="left">←<span class="label" data-en="Left" data-ru="Влево" data-lv="Pa kreisi">Left</span></button>
-    <button data-act="rotate">⟳<span class="label" data-en="Rotate" data-ru="Поворот" data-lv="Pagriezt">Rotate</span></button>
-    <button data-act="right">→<span class="label" data-en="Right" data-ru="Вправо" data-lv="Pa labi">Right</span></button>
-    <button data-act="soft">↓<span class="label" data-en="Soft" data-ru="Вниз" data-lv="Lejup">Soft</span></button>
-    <button data-act="hard">⤓<span class="label" data-en="Drop" data-ru="Бросок" data-lv="Mest">Drop</span></button>
-    <button data-act="hold">⇆<span class="label" data-en="Hold" data-ru="Запас" data-lv="Rezerve">Hold</span></button>
+    <div class="ctrl-l">
+      <button data-act="left">←<span class="label" data-en="Left" data-ru="Влево" data-lv="Pa kreisi">Left</span></button>
+      <button data-act="soft">↓<span class="label" data-en="Down" data-ru="Вниз" data-lv="Lejup">Down</span></button>
+    </div>
+    <div class="ctrl-r">
+      <button data-act="rotate">↑<span class="label" data-en="Rotate" data-ru="Поворот" data-lv="Pagriezt">Rotate</span></button>
+      <button data-act="right">→<span class="label" data-en="Right" data-ru="Вправо" data-lv="Pa labi">Right</span></button>
+      <button data-act="hard">⤓<span class="label" data-en="Drop" data-ru="Бросок" data-lv="Mest">Drop</span></button>
+      <button data-act="hold">⇆<span class="label" data-en="Hold" data-ru="Запас" data-lv="Rezerve">Hold</span></button>
+    </div>
   </div>
 
   <div class="hint"
@@ -252,11 +260,21 @@
   bestEl.textContent = best;
 
   // -------- Sizing --------
+  const BOARD_AR = COLS / ROWS; // 10/20 = 0.5
   function fitCanvas() {
-    const rect = board.getBoundingClientRect();
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const sides = [...playArea.querySelectorAll('.side')];
+    const sideTotal = sides.reduce((s, el) => s + el.getBoundingClientRect().width, 0) || 184;
+    const availW = Math.max(60, pa.width - sideTotal - 16);
+    const availH = pa.height;
+    const bH = Math.min(availH, availW / BOARD_AR, 640);
+    const bW = Math.round(bH * BOARD_AR);
+    board.style.width = bW + 'px';
+    board.style.height = bH + 'px';
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+    canvas.width = Math.floor(bW * dpr);
+    canvas.height = Math.floor(bH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
@@ -354,7 +372,9 @@
     // Spawn particles on cleared rows
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
     const cellW = w / COLS;
+    const cellH = h / ROWS;
     for (const y of clearedRows) {
       for (let x = 0; x < COLS; x++) {
         const color = grid[y][x];
@@ -362,7 +382,7 @@
           const a = Math.random() * Math.PI * 2;
           const s = 1 + Math.random() * 2;
           particles.push({
-            x: (x + 0.5) * cellW, y: (y + 0.5) * cellW,
+            x: (x + 0.5) * cellW, y: (y + 0.5) * cellH,
             vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1,
             life: 30 + Math.random() * 20,
             color,
@@ -535,12 +555,12 @@
   // -------- Draw --------
   function getCSS(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
-  function drawCell(x, y, color, cellW, alpha = 1) {
+  function drawCell(x, y, color, cellW, cellH, alpha = 1) {
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
-    ctx.fillRect(x * cellW + 1, y * cellW + 1, cellW - 2, cellW - 2);
+    ctx.fillRect(x * cellW + 1, y * cellH + 1, cellW - 2, cellH - 2);
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(x * cellW + 1, y * cellW + 1, cellW - 2, 3);
+    ctx.fillRect(x * cellW + 1, y * cellH + 1, cellW - 2, 3);
     ctx.globalAlpha = 1;
   }
 
@@ -549,6 +569,7 @@
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     const cellW = w / COLS;
+    const cellH = h / ROWS;
 
     ctx.fillStyle = getCSS('--panel');
     ctx.fillRect(0, 0, w, h);
@@ -560,13 +581,13 @@
       ctx.beginPath(); ctx.moveTo(i * cellW, 0); ctx.lineTo(i * cellW, h); ctx.stroke();
     }
     for (let j = 1; j < ROWS; j++) {
-      ctx.beginPath(); ctx.moveTo(0, j * cellW); ctx.lineTo(w, j * cellW); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, j * cellH); ctx.lineTo(w, j * cellH); ctx.stroke();
     }
 
     // Locked blocks
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
-        if (grid[y][x]) drawCell(x, y, grid[y][x], cellW);
+        if (grid[y][x]) drawCell(x, y, grid[y][x], cellW, cellH);
       }
     }
 
@@ -574,14 +595,14 @@
     if (alive && current) {
       const gy = ghostY(current);
       for (const [cx, cy] of current.cells) {
-        drawCell(current.x + cx, gy + cy, current.color, cellW, 0.18);
+        drawCell(current.x + cx, gy + cy, current.color, cellW, cellH, 0.18);
       }
     }
 
     // Current piece
     if (alive && current) {
       for (const [cx, cy] of current.cells) {
-        if (current.y + cy >= 0) drawCell(current.x + cx, current.y + cy, current.color, cellW);
+        if (current.y + cy >= 0) drawCell(current.x + cx, current.y + cy, current.color, cellW, cellH);
       }
     }
 
@@ -622,10 +643,21 @@
   }
 
   // -------- Controls --------
-  controls.addEventListener('click', (e) => {
+  let repeatTimer = null;
+  function startRepeat(act) {
+    clearTimeout(repeatTimer);
+    repeatTimer = setTimeout(function rep() {
+      if (act === 'left') move(-1);
+      else if (act === 'right') move(1);
+      else if (act === 'soft') softDrop();
+      repeatTimer = setTimeout(rep, 60);
+    }, 200);
+  }
+  controls.addEventListener('pointerdown', (e) => {
     ensureAudio();
     const btn = e.target.closest('button');
     if (!btn) return;
+    e.preventDefault();
     const act = btn.dataset.act;
     if (act === 'left') move(-1);
     else if (act === 'right') move(1);
@@ -633,7 +665,11 @@
     else if (act === 'soft') softDrop();
     else if (act === 'hard') hardDrop();
     else if (act === 'hold') holdPiece();
+    if (act === 'left' || act === 'right' || act === 'soft') startRepeat(act);
   });
+  controls.addEventListener('pointerup', () => clearTimeout(repeatTimer));
+  controls.addEventListener('pointercancel', () => clearTimeout(repeatTimer));
+  controls.addEventListener('pointerleave', () => clearTimeout(repeatTimer));
 
   window.addEventListener('keydown', (e) => {
     const k = e.key;
