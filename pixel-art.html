@@ -7,101 +7,69 @@
 <title>Pixel Art</title>
 <style>
   :root {
-    --bg: #0b1020;
-    --panel: #131a33;
-    --grid: #1b2347;
-    --text: #e5e7eb;
-    --muted: #94a3b8;
-    --accent: #f472b6;
+    --bg: #0b1020; --panel: #131a33; --grid: #1b2347;
+    --text: #e5e7eb; --muted: #94a3b8; --accent: #f472b6;
   }
   * { box-sizing: border-box; }
   html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg);
-    color: var(--text);
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
+    height: 100%; overflow: hidden; overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
   }
   .app {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
     height: 100dvh;
+    padding: max(env(safe-area-inset-top), 10px) 10px max(env(safe-area-inset-bottom), 10px);
   }
   header {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex: 0 0 auto;
+    width: 100%; max-width: 560px;
+    display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
   }
   .title-wrap { display: flex; align-items: center; gap: 10px; }
   .back {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 14px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: var(--panel);
+    color: var(--muted); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 8px; background: var(--panel);
   }
-  h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
+  h1 { font-size: 20px; margin: 0; }
+  .toolbar {
+    width: 100%; max-width: 560px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 4px; flex: 0 0 auto;
+  }
+  .tb-group { display: flex; gap: 3px; }
+  .tb-btn {
+    appearance: none; border: none; cursor: pointer; touch-action: manipulation;
+    background: var(--panel); color: var(--text); border-radius: 8px;
+    width: 38px; height: 34px; font-size: 15px;
+    display: flex; align-items: center; justify-content: center; font-weight: 600;
+  }
+  .tb-btn.active { background: var(--accent); color: #04162e; }
+  .tb-btn:active { transform: translateY(1px); }
+  .cur-color {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.25); cursor: pointer; touch-action: manipulation;
+  }
   .play-area {
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    flex: 1 1 auto; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
   }
   .board-wrap {
-    position: relative;
-    background: var(--panel);
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    overflow: hidden;
-    touch-action: none;
+    position: relative; border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5); overflow: hidden;
+    touch-action: none; cursor: crosshair;
   }
-  canvas { display: block; }
-  .overlay {
-    position: absolute;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    background: rgba(11, 16, 32, 0.82);
-    backdrop-filter: blur(4px);
-    text-align: center;
-    padding: 16px;
+  canvas { display: block; width: 100%; height: 100%; }
+  .palette {
+    width: 100%; max-width: 560px; flex: 0 0 auto;
+    display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
   }
-  .overlay.show { display: flex; }
-  .overlay h2 { margin: 0; font-size: 22px; }
-  .overlay p { margin: 0; color: var(--muted); font-size: 14px; }
-  button {
-    appearance: none;
-    border: none;
-    background: var(--accent);
-    color: #04162e;
-    font-weight: 700;
-    font-size: 16px;
-    padding: 12px 22px;
-    border-radius: 999px;
-    cursor: pointer;
-    touch-action: manipulation;
+  .swatch {
+    width: 28px; height: 28px; border-radius: 6px;
+    cursor: pointer; touch-action: manipulation;
+    border: 2px solid transparent; flex-shrink: 0;
   }
-  button:active { transform: translateY(1px); }
-  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 800px; flex: 0 0 auto; }
+  .swatch.active { border-color: #fff; transform: scale(1.2); box-shadow: 0 0 0 1px rgba(0,0,0,0.5); }
 </style>
 </head>
 <body>
@@ -113,50 +81,85 @@
     </div>
   </header>
 
-  <div class="play-area">
-    <div class="board-wrap" id="board">
-      <canvas id="game"></canvas>
-      <div class="overlay show" id="overlay">
-        <h2 id="title">Pixel Art</h2>
-        <p id="msg"
-           data-en="Tap to paint. Pick a color. Save your art!"
-           data-ru="Тапни чтобы рисовать. Выбери цвет. Сохрани!"
-           data-lv="Pieskarties, lai krāsotu. Izvēlies krāsu. Saglabā!">Tap to paint. Pick a color. Save your art!</p>
-        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
-      </div>
+  <div class="toolbar" id="toolbar">
+    <div class="tb-group">
+      <button class="tb-btn active" data-tool="pencil">✏️</button>
+      <button class="tb-btn" data-tool="eraser">⬜</button>
+      <button class="tb-btn" data-tool="fill">🪣</button>
+    </div>
+    <div class="cur-color" id="curColor"></div>
+    <div class="tb-group">
+      <button class="tb-btn active" data-size="1">S</button>
+      <button class="tb-btn" data-size="2">M</button>
+      <button class="tb-btn" data-size="3">L</button>
+    </div>
+    <div class="tb-group">
+      <button class="tb-btn active" id="btnGrid">⊞</button>
+      <button class="tb-btn" id="btnClear">🗑️</button>
+      <button class="tb-btn" id="btnSave">💾</button>
     </div>
   </div>
 
-  <div class="hint"
-       data-en="Tap to paint. Pick a color. Save your art!"
-       data-ru="Тапни чтобы рисовать. Выбери цвет. Сохрани!"
-       data-lv="Pieskarties, lai krāsotu. Izvēlies krāsu. Saglabā!">Tap to paint. Pick a color. Save your art!</div>
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+    </div>
+  </div>
+
+  <div class="palette" id="palette"></div>
 </div>
 
 <script src="lang.js"></script>
-
 <script>
 (() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const board = document.getElementById('board');
-  const playArea = document.querySelector('.play-area');
-  const overlay = document.getElementById('overlay');
-  const startBtn = document.getElementById('startBtn');
+  const canvas    = document.getElementById('game');
+  const ctx       = canvas.getContext('2d');
+  const board     = document.getElementById('board');
+  const playArea  = document.querySelector('.play-area');
+  const paletteEl = document.getElementById('palette');
+  const curColorEl = document.getElementById('curColor');
 
-  const BOARD_AR = 1 / 1;
-  const BOARD_MAX = 600;
+  const COLS = 16, ROWS = 16;
+  const SAVE_KEY = 'pixel-art.pixels';
+  const BOARD_MAX = 560;
+
+  const PALETTE = [
+    '#000000','#ffffff','#ef4444','#f97316','#facc15','#84cc16',
+    '#4ade80','#22d3ee','#60a5fa','#a78bfa','#f472b6','#78716c',
+    '#374151','#d1d5db','#b91c1c','#c2410c','#a16207','#166534',
+    '#0f766e','#1d4ed8','#7c3aed','#be185d','#92400e','#1e3a5f',
+  ];
+
+  let pixels    = [];
+  let tool      = 'pencil';
+  let brushSize = 1;
+  let color     = '#ef4444';
+  let showGrid  = true;
+  let isDrawing = false;
+  let hoverCell = null;
+  let lastCell  = null;
+
+  function newPixels() { return Array.from({ length: ROWS }, () => Array(COLS).fill(null)); }
+
+  function loadPixels() {
+    try { const s = localStorage.getItem(SAVE_KEY); if (s) return JSON.parse(s); } catch (_) {}
+    return newPixels();
+  }
+  function savePixels() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(pixels)); } catch (_) {} }
+
+  pixels = loadPixels();
+
+  // ---- Sizing ----
+  function getW() { return canvas.width  / (window.devicePixelRatio || 1); }
+  function getH() { return canvas.height / (window.devicePixelRatio || 1); }
 
   function fitCanvas() {
     const pa = playArea.getBoundingClientRect();
-    if (pa.width === 0 || pa.height === 0) return;
-    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
-    const h = w / BOARD_AR;
-    board.style.width = w + 'px';
-    board.style.height = h + 'px';
+    if (!pa.width || !pa.height) return;
+    const s = Math.min(pa.width, pa.height, BOARD_MAX);
+    board.style.width = board.style.height = s + 'px';
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
+    canvas.width = canvas.height = Math.floor(s * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
@@ -164,19 +167,207 @@
   window.addEventListener('orientationchange', fitCanvas);
   if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
 
+  // ---- Draw ----
   function draw() {
-    const w = canvas.width / (window.devicePixelRatio || 1);
-    const h = canvas.height / (window.devicePixelRatio || 1);
-    ctx.fillStyle = '#131a33';
-    ctx.fillRect(0, 0, w, h);
+    const W = getW(), H = getH();
+    const cW = W / COLS, cH = H / ROWS;
+
+    // Checkered background (transparent indicator)
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#1e2a3a' : '#162030';
+        ctx.fillRect(c * cW, r * cH, cW, cH);
+      }
+    }
+
+    // Filled pixels
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (pixels[r][c]) {
+          ctx.fillStyle = pixels[r][c];
+          ctx.fillRect(c * cW, r * cH, cW, cH);
+        }
+      }
+    }
+
+    // Hover preview
+    if (hoverCell && !isDrawing) {
+      const half = Math.floor(brushSize / 2);
+      for (let dr = 0; dr < brushSize; dr++) {
+        for (let dc = 0; dc < brushSize; dc++) {
+          const r = hoverCell.row - half + dr, c = hoverCell.col - half + dc;
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+            ctx.fillStyle = tool === 'eraser' ? 'rgba(255,255,255,0.4)' : color + '99';
+            ctx.fillRect(c * cW, r * cH, cW, cH);
+          }
+        }
+      }
+      // Outline around brush area
+      const r0 = hoverCell.row - half, c0 = hoverCell.col - half;
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(c0 * cW + 0.5, r0 * cH + 0.5, brushSize * cW - 1, brushSize * cH - 1);
+    }
+
+    // Grid lines
+    if (showGrid) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+      ctx.lineWidth = 0.5;
+      for (let c = 1; c < COLS; c++) {
+        ctx.beginPath(); ctx.moveTo(c * cW, 0); ctx.lineTo(c * cW, H); ctx.stroke();
+      }
+      for (let r = 1; r < ROWS; r++) {
+        ctx.beginPath(); ctx.moveTo(0, r * cH); ctx.lineTo(W, r * cH); ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+    }
   }
 
-  function start() {
-    overlay.classList.remove('show');
+  // ---- Tools ----
+  function pointerToCell(e) {
+    const rect = board.getBoundingClientRect();
+    return {
+      col: Math.floor((e.clientX - rect.left) / rect.width  * COLS),
+      row: Math.floor((e.clientY - rect.top)  / rect.height * ROWS),
+    };
+  }
+
+  function paintAt(col, row) {
+    const half = Math.floor(brushSize / 2);
+    for (let dr = 0; dr < brushSize; dr++) {
+      for (let dc = 0; dc < brushSize; dc++) {
+        const r = row - half + dr, c = col - half + dc;
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS)
+          pixels[r][c] = tool === 'eraser' ? null : color;
+      }
+    }
+  }
+
+  function floodFill(startCol, startRow) {
+    const target = pixels[startRow][startCol];
+    if (target === color) return;
+    const stack = [[startCol, startRow]];
+    while (stack.length) {
+      const [c, r] = stack.pop();
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS || pixels[r][c] !== target) continue;
+      pixels[r][c] = color;
+      stack.push([c+1,r],[c-1,r],[c,r+1],[c,r-1]);
+    }
+  }
+
+  // ---- Palette ----
+  function setColor(c, fromPalette = false) {
+    color = c;
+    curColorEl.style.background = c;
+    if (!fromPalette) paletteEl.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    if (tool === 'eraser') setTool('pencil');
+  }
+
+  function buildPalette() {
+    paletteEl.innerHTML = '';
+    PALETTE.forEach(c => {
+      const sw = document.createElement('div');
+      sw.className = 'swatch' + (c === color ? ' active' : '');
+      sw.style.background = c;
+      sw.addEventListener('click', () => {
+        paletteEl.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        setColor(c, true);
+      });
+      paletteEl.appendChild(sw);
+    });
+    curColorEl.style.background = color;
+  }
+
+  function setTool(t) {
+    tool = t;
+    document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+  }
+
+  function setBrush(s) {
+    brushSize = s;
+    document.querySelectorAll('[data-size]').forEach(b => b.classList.toggle('active', +b.dataset.size === s));
+  }
+
+  // ---- Pointer events ----
+  board.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const { col, row } = pointerToCell(e);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+    isDrawing = true; lastCell = { col, row };
+    if (tool === 'fill') { floodFill(col, row); } else { paintAt(col, row); }
+    savePixels(); draw();
+  }, { passive: false });
+
+  board.addEventListener('pointermove', (e) => {
+    e.preventDefault();
+    const { col, row } = pointerToCell(e);
+    hoverCell = (col >= 0 && col < COLS && row >= 0 && row < ROWS) ? { col, row } : null;
+    if (isDrawing && tool !== 'fill') {
+      if (!lastCell || lastCell.col !== col || lastCell.row !== row) {
+        if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+          paintAt(col, row); lastCell = { col, row }; savePixels();
+        }
+      }
+    }
     draw();
-  }
+  }, { passive: false });
 
-  startBtn.addEventListener('click', start);
+  board.addEventListener('pointerup',     () => { isDrawing = false; lastCell = null; });
+  board.addEventListener('pointercancel', () => { isDrawing = false; lastCell = null; });
+  board.addEventListener('pointerleave',  () => { hoverCell = null; draw(); });
+
+  // ---- Toolbar events ----
+  document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+  document.querySelectorAll('[data-size]').forEach(b => b.addEventListener('click', () => setBrush(+b.dataset.size)));
+
+  document.getElementById('btnGrid').addEventListener('click', function() {
+    showGrid = !showGrid;
+    this.classList.toggle('active', showGrid);
+    draw();
+  });
+
+  document.getElementById('btnClear').addEventListener('click', () => {
+    pixels = newPixels(); savePixels(); draw();
+  });
+
+  // Save PNG — each pixel becomes 32×32 in the output (512×512 total)
+  document.getElementById('btnSave').addEventListener('click', () => {
+    const sc = 32;
+    const tmp = document.createElement('canvas');
+    tmp.width = tmp.height = COLS * sc;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = '#ffffff'; tc.fillRect(0, 0, tmp.width, tmp.height);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (pixels[r][c]) { tc.fillStyle = pixels[r][c]; tc.fillRect(c*sc, r*sc, sc, sc); }
+      }
+    }
+    const a = Object.assign(document.createElement('a'), { download: 'pixel-art.png', href: tmp.toDataURL() });
+    a.click();
+  });
+
+  // Current color → native color picker
+  curColorEl.addEventListener('click', () => {
+    const inp = Object.assign(document.createElement('input'), { type: 'color', value: color });
+    inp.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    document.body.appendChild(inp);
+    inp.addEventListener('input', e => setColor(e.target.value));
+    inp.addEventListener('change', () => inp.remove());
+    inp.click();
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', e => {
+    if (e.key === 'p') setTool('pencil');
+    else if (e.key === 'e') setTool('eraser');
+    else if (e.key === 'f') setTool('fill');
+    else if (e.key === 'g') document.getElementById('btnGrid').click();
+  });
+
+  buildPalette();
   fitCanvas();
   draw();
 })();
