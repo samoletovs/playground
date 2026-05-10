@@ -56,11 +56,9 @@
   .board-wrap {
     position: relative; background: var(--panel); border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4); overflow: hidden; touch-action: none;
-    aspect-ratio: 10 / 20;
-    height: 100%;
-    max-width: 100%;
+    flex-shrink: 0;
   }
-  canvas#game { width: 100%; height: 100%; display: block; }
+  canvas#game { display: block; }
   .overlay {
     position: absolute; inset: 0; display: none;
     align-items: center; justify-content: center; flex-direction: column;
@@ -82,8 +80,8 @@
     display: flex; justify-content: space-between; align-items: flex-end;
     flex: 0 0 auto; padding: 0 8px;
   }
-  .ctrl-l { display: flex; flex-direction: column; gap: 6px; }
-  .ctrl-r { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ctrl-l, .ctrl-r { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-c { display: flex; align-items: center; }
   .controls button {
     appearance: none; border: none; background: var(--panel);
     color: var(--text); font-size: 22px; font-weight: 700;
@@ -156,12 +154,14 @@
     <div class="ctrl-l">
       <button data-act="left">←<span class="label" data-en="Left" data-ru="Влево" data-lv="Pa kreisi">Left</span></button>
       <button data-act="soft">↓<span class="label" data-en="Down" data-ru="Вниз" data-lv="Lejup">Down</span></button>
+      <button data-act="hard">⤓<span class="label" data-en="Drop" data-ru="Бросок" data-lv="Mest">Drop</span></button>
+    </div>
+    <div class="ctrl-c">
+      <button data-act="hold">⇆<span class="label" data-en="Hold" data-ru="Запас" data-lv="Rezerve">Hold</span></button>
     </div>
     <div class="ctrl-r">
       <button data-act="rotate">↑<span class="label" data-en="Rotate" data-ru="Поворот" data-lv="Pagriezt">Rotate</span></button>
       <button data-act="right">→<span class="label" data-en="Right" data-ru="Вправо" data-lv="Pa labi">Right</span></button>
-      <button data-act="hard">⤓<span class="label" data-en="Drop" data-ru="Бросок" data-lv="Mest">Drop</span></button>
-      <button data-act="hold">⇆<span class="label" data-en="Hold" data-ru="Запас" data-lv="Rezerve">Hold</span></button>
     </div>
   </div>
 
