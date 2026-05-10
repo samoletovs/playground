@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0b1020" />
+<title>Footbag</title>
+<style>
+  :root {
+    --bg: #0b1020; --panel: #131a33; --grid: #1b2347;
+    --text: #e5e7eb; --muted: #94a3b8; --accent: #84cc16;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100%; overflow: hidden; overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  }
+  .app {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: max(env(safe-area-inset-top), 10px) 12px max(env(safe-area-inset-bottom), 10px);
+    height: 100dvh;
+  }
+  header {
+    width: 100%; max-width: 480px; display: flex;
+    align-items: center; justify-content: space-between; gap: 12px; flex: 0 0 auto;
+  }
+  .title-wrap { display: flex; align-items: center; gap: 10px; }
+  .back {
+    color: var(--muted); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 8px; background: var(--panel);
+  }
+  h1 { font-size: 20px; margin: 0; }
+  .score { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; text-align: right; line-height: 1.5; }
+  .score b { color: var(--text); }
+  .play-area {
+    flex: 1 1 auto; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .board-wrap {
+    position: relative; border-radius: 16px; background: #050c1a;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.6); overflow: hidden; touch-action: none;
+  }
+  canvas { width: 100%; height: 100%; display: block; }
+  .overlay {
+    position: absolute; inset: 0; display: none;
+    align-items: center; justify-content: center; flex-direction: column;
+    gap: 14px; background: rgba(5,12,26,0.88); backdrop-filter: blur(4px);
+    text-align: center; padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { margin: 0; font-size: 24px; }
+  .overlay p { margin: 0; color: var(--muted); font-size: 13px; max-width: 270px; line-height: 1.6; }
+  button {
+    appearance: none; border: none; background: var(--accent); color: #04162e;
+    font-weight: 700; font-size: 16px; padding: 12px 26px;
+    border-radius: 999px; cursor: pointer; touch-action: manipulation;
+  }
+  button:active { transform: translateY(1px); }
+  .hint { color: var(--muted); font-size: 11px; text-align: center; flex: 0 0 auto; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title-wrap">
+      <a class="back" href="index.html" data-en="← Menu" data-ru="Меню" data-lv="Izvēlne">← Menu</a>
+      <h1>Footbag</h1>
+    </div>
+    <div class="score">
+      <span data-en="Score" data-ru="Счёт" data-lv="Rezultāts">Score</span> <b id="score">0</b><br>
+      <span data-en="Best" data-ru="Лучший" data-lv="Labākais">Best</span> <b id="best">0</b>
+    </div>
+  </header>
+
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+      <div class="overlay show" id="overlay">
+        <h2 id="overlayTitle">Footbag</h2>
+        <p id="overlayMsg"
+           data-en="Tap left/right to kick. Swipe a circle around the sack for Around the World! Quick foot switch = Crossover!"
+           data-ru="Тапни слева/справа чтобы бить. Проведи пальцем по кругу вокруг мяча для Вокруг Света! Быстрая смена ноги = Кроссовер!"
+           data-lv="Sper pa kreisi/labi. Apvelc ar pirkstu riņķi ap maisiņu — Apkārt pasaulei! Ātrā maiņa = Pāreja!">
+          Tap left/right to kick. Swipe a circle for Around the World! Quick switch = Crossover!
+        </p>
+        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint"
+       data-en="3 lives · alternate feet for combo · circle swipe = Around the World 🌍 · quick switch = Crossover ✕"
+       data-ru="3 жизни · чередуй ноги для комбо · круг = Вокруг света 🌍 · быстро сменить = Кроссовер ✕"
+       data-lv="3 dzīvības · mainīt kājas kombam · aplis = Apkārt pasaulei 🌍 · ātrā maiņa = Pāreja ✕">
+    3 lives · alternate feet for combo · circle = Around the World 🌍 · quick switch = Crossover ✕
+  </div>
+</div>
+
+<script src="lang.js"></script>
+<script>
+(() => {
+  const canvas  = document.getElementById('game');
+  const ctx     = canvas.getContext('2d');
+  const board   = document.getElementById('board');
+  const playArea = document.querySelector('.play-area');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlayMsg   = document.getElementById('overlayMsg');
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+
+  const BEST_KEY = 'footbag.best';
+  const BOARD_AR = 9 / 16;
+  const BOARD_MAX = 460;
+  const GRAVITY  = 0.24;
+  const KICK_VY  = -11.5;
+  const BALL_R   = 15;
+
+  let best = 0;
+  try { best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10); } catch (_) {}
+  bestEl.textContent = best;
+
+  let ball, combo, score, lives, lastFoot, alive, raf;
+  let kickFlash  = { left: 0, right: 0 };
+  let trickToast = null;   // { text, color, pts, t }
+  let particles  = [];
+  let lastKickFoot = null, lastKickTime = 0;
+  let atw = false; // around-the-world charged
+
+  // Circle gesture state
+  let gestureDown   = false;
+  let gesturePts    = [];
+  let gestureCenter = null; // ball position at last kick
+
+  // ---- Audio ----
+  let audio = null;
+  function ensureAudio() {
+    if (audio) { if (audio.state === 'suspended') audio.resume().catch(() => {}); return; }
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
+  function beep(f, d, v = 0.14, t = 'triangle') {
+    if (!audio) return;
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.connect(g); g.connect(audio.destination);
+    o.type = t; o.frequency.value = f;
+    g.gain.setValueAtTime(v, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + d);
+    o.start(); o.stop(audio.currentTime + d);
+  }
+  function sfxKick(c)  { beep(180 + c * 22, 0.07, 0.18, 'triangle'); }
+  function sfxTrick()  { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.10,0.12), i*65)); }
+  function sfxDrop()   { beep(90, 0.35, 0.24, 'sawtooth'); }
+  function sfxCombo(c) { beep(280 + c * 38, 0.05, 0.12, 'square'); }
+
+  // ---- Sizing ----
+  function getW() { return canvas.width  / (window.devicePixelRatio || 1); }
+  function getH() { return canvas.height / (window.devicePixelRatio || 1); }
+
+  function fitCanvas() {
+    const pa = playArea.getBoundingClientRect();
+    if (!pa.width || !pa.height) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width  = w + 'px';
+    board.style.height = h + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
+
+  // ---- Game logic ----
+  function reset() {
+    const W = getW(), H = getH();
+    ball = { x: W / 2, y: H * 0.42, vx: 0.4, vy: 0, spin: 0, spinV: 0 };
+    combo = 0; score = 0; lives = 3;
+    lastFoot = null; lastKickFoot = null; lastKickTime = 0;
+    kickFlash = { left: 0, right: 0 };
+    trickToast = null; atw = false;
+    particles = []; gesturePts = []; gestureDown = false; gestureCenter = null;
+    alive = true;
+    scoreEl.textContent = '0';
+  }
+
+  function spawnParts(x, y, col, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 3.5;
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 24 + Math.random() * 12, col });
+    }
+  }
+
+  function toast(text, color, pts = 0) {
+    trickToast = { text, color, pts, t: performance.now() };
+  }
+
+  function kick(foot) {
+    if (!alive) return;
+    const W = getW(), H = getH();
+    const now = performance.now();
+    if (ball.y < H * 0.28) return; // too high to kick
+
+    ensureAudio();
+    const footX = foot === 'left' ? W * 0.27 : W * 0.73;
+    const footY = H * 0.875;
+
+    // --- Trick detection ---
+    let trickPts = 0, trickName = '';
+
+    if (atw) {
+      // Around the World fires on this kick
+      trickPts = 15 * Math.max(1, combo + 1);
+      trickName = Lang.t('Вокруг Света! 🌍', 'Apkārt pasaulei! 🌍', 'Around the World! 🌍');
+      atw = false;
+      sfxTrick();
+      spawnParts(W / 2, H * 0.4, '#84cc16', 16);
+    } else if (lastKickFoot && lastKickFoot !== foot && now - lastKickTime < 380 && ball.vy < 0) {
+      // Crossover: opposite foot while ball still rising
+      trickPts = 8 * Math.max(1, combo + 1);
+      trickName = 'Crossover! ✕';
+      sfxTrick();
+      spawnParts(ball.x, ball.y, '#22d3ee', 10);
+    }
+
+    // --- Combo ---
+    if (lastFoot !== null) {
+      combo = foot !== lastFoot ? Math.min(combo + 1, 9) : 0;
+    }
+    if (combo >= 2) sfxCombo(combo);
+    lastFoot = foot; lastKickFoot = foot; lastKickTime = now;
+
+    // --- Ball physics ---
+    const dx = (ball.x - footX) * 0.13;
+    ball.vx = Math.max(-4.5, Math.min(4.5, dx + (foot === 'left' ? 0.7 : -0.7)));
+    ball.vy = KICK_VY - Math.min(combo, 5) * 0.35;
+    ball.spinV = (foot === 'left' ? 1 : -1) * (0.07 + Math.random() * 0.05);
+
+    sfxKick(combo);
+    kickFlash[foot] = 14;
+    spawnParts(footX, footY - 12, foot === 'left' ? '#3b82f6' : '#ef4444', 6);
+
+    // --- Score ---
+    const pts = 1 + Math.floor(combo / 2) + trickPts;
+    score += pts;
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem(BEST_KEY, String(best)); } catch (_) {}
+      bestEl.textContent = best;
+    }
+    scoreEl.textContent = score;
+
+    if (trickName) toast(trickName, '#84cc16', trickPts);
+    else if (combo >= 3) toast(`Combo ×${combo + 1}`, '#facc15');
+
+    // Reset gesture for next Around the World
+    gestureCenter = { x: ball.x, y: ball.y };
+    gesturePts = [];
+  }
+
+  // Circle gesture detection (Around the World)
+  function updateGesture(px, py) {
+    if (!gestureDown || !gestureCenter || atw || !alive) return;
+    gesturePts.push({ x: px, y: py });
+    if (gesturePts.length > 50) gesturePts.shift();
+    if (gesturePts.length < 10) return;
+
+    // Minimum circle radius
+    const dist = Math.hypot(px - gestureCenter.x, py - gestureCenter.y);
+    if (dist < 22) return;
+
+    // Accumulate angular sweep around gestureCenter
+    let total = 0;
+    for (let i = 1; i < gesturePts.length; i++) {
+      const a1 = Math.atan2(gesturePts[i-1].y - gestureCenter.y, gesturePts[i-1].x - gestureCenter.x);
+      const a2 = Math.atan2(gesturePts[i].y   - gestureCenter.y, gesturePts[i].x   - gestureCenter.x);
+      let da = a2 - a1;
+      if (da >  Math.PI) da -= Math.PI * 2;
+      if (da < -Math.PI) da += Math.PI * 2;
+      total += da;
+    }
+
+    if (Math.abs(total) >= Math.PI * 1.65) { // ~297° ≈ full circle
+      atw = true;
+      gesturePts = []; gestureCenter = null;
+      toast(Lang.t('Готово! Бей! 🔥', 'Gatavs! Sper! 🔥', 'Ready! Kick! 🔥'), '#f472b6');
+    }
+  }
+
+  function dropBall() {
+    lives--;
+    sfxDrop();
+    combo = 0; lastFoot = null; atw = false;
+    gesturePts = []; gestureCenter = null;
+    const W = getW(), H = getH();
+    spawnParts(ball.x, ball.y, '#ef4444', 10);
+    if (lives <= 0) {
+      alive = false;
+      overlayTitle.textContent = Lang.t('Уронил! 😬', 'Nometa! 😬', 'Dropped! 😬');
+      const beatBest = score >= best && score > 0;
+      const base = Lang.t(`Счёт ${score}. Жми Старт.`, `Rezultāts ${score}. Spied Sākt.`, `Score ${score}. Tap Start.`);
+      overlayMsg.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, base, 0.5) : base;
+      startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+      overlay.classList.add('show');
+      return;
+    }
+    ball = { x: W / 2, y: H * 0.42, vx: (Math.random() - 0.5) * 1.5, vy: 0, spin: 0, spinV: 0 };
+  }
+
+  function step() {
+    const W = getW(), H = getH();
+    ball.vy  += GRAVITY;
+    ball.x   += ball.vx;
+    ball.y   += ball.vy;
+    ball.spin += ball.spinV;
+    ball.spinV *= 0.987;
+    ball.vx  *= 0.999;
+
+    if (ball.x - BALL_R < 0)  { ball.x = BALL_R;      ball.vx =  Math.abs(ball.vx) * 0.6; }
+    if (ball.x + BALL_R > W)  { ball.x = W - BALL_R;  ball.vx = -Math.abs(ball.vx) * 0.6; }
+    if (ball.y - BALL_R < 0)  { ball.y = BALL_R;      ball.vy =  Math.abs(ball.vy) * 0.4; }
+    if (ball.y + BALL_R > H * 0.93) dropBall();
+
+    if (kickFlash.left  > 0) kickFlash.left--;
+    if (kickFlash.right > 0) kickFlash.right--;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.14; p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // ---- Drawing ----
+  function drawBall(x, y, spin) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(spin);
+    if (atw) { ctx.shadowBlur = 18; ctx.shadowColor = '#84cc16'; }
+
+    // Base gradient
+    const gr = ctx.createRadialGradient(-BALL_R*0.3, -BALL_R*0.35, 1, 0, 0, BALL_R);
+    gr.addColorStop(0, '#d1d5db');
+    gr.addColorStop(0.55, '#9ca3af');
+    gr.addColorStop(1, '#374151');
+    ctx.beginPath(); ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+    ctx.fillStyle = gr; ctx.fill();
+
+    // Colored patches (hacky sack)
+    const cols = ['#4ade80cc','#f472b6cc','#60a5facc','#fb923ccc','#facc15cc'];
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, BALL_R, 0, Math.PI * 2); ctx.clip();
+    for (let i = 0; i < 5; i++) {
+      const a  = (i / 5) * Math.PI * 2;
+      const px = Math.cos(a) * BALL_R * 0.5, py = Math.sin(a) * BALL_R * 0.5;
+      ctx.fillStyle = cols[i];
+      ctx.beginPath();
+      for (let j = 0; j < 5; j++) {
+        const a2 = (j / 5) * Math.PI * 2;
+        const sx = px + Math.cos(a2) * BALL_R * 0.38, sy = py + Math.sin(a2) * BALL_R * 0.38;
+        j === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, BALL_R, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function drawShoe(cx, cy, flashT, side) {
+    const t = flashT / 14;
+    ctx.save();
+    ctx.translate(cx, cy - t * 17);
+    ctx.rotate((side === 'left' ? -1 : 1) * t * 0.30);
+    if (side === 'right') ctx.scale(-1, 1);
+
+    // Sole
+    ctx.fillStyle = '#111827';
+    ctx.beginPath(); ctx.roundRect(-28, 7, 58, 13, [3,3,7,7]); ctx.fill();
+    // Upper
+    ctx.fillStyle = side === 'left' ? '#3b82f6' : '#ef4444';
+    ctx.beginPath(); ctx.roundRect(-26, -9, 54, 22, [10,13,5,5]); ctx.fill();
+    // Toe cap
+    ctx.fillStyle = side === 'left' ? '#1d4ed8' : '#b91c1c';
+    ctx.beginPath(); ctx.roundRect(16, -7, 14, 17, [6,10,4,4]); ctx.fill();
+    // Laces
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    for (let i = 0; i < 3; i++) ctx.fillRect(-8 + i * 9, -5, 5, 2.5);
+    // Highlight stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.roundRect(-20, -7, 30, 6, [4]); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function draw() {
+    const W = getW(), H = getH();
+
+    // Background
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#050c1a');
+    bg.addColorStop(0.6, '#0d1526');
+    bg.addColorStop(1, '#131a33');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // Floor
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H * 0.89); ctx.lineTo(W, H * 0.89); ctx.stroke();
+
+    // Center divider (subtle)
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 10]);
+    ctx.beginPath(); ctx.moveTo(W/2, H * 0.72); ctx.lineTo(W/2, H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Kick zone flash
+    if (kickFlash.left > 0) {
+      ctx.fillStyle = `rgba(59,130,246,${kickFlash.left / 14 * 0.14})`;
+      ctx.fillRect(0, H * 0.65, W/2, H * 0.35);
+    }
+    if (kickFlash.right > 0) {
+      ctx.fillStyle = `rgba(239,68,68,${kickFlash.right / 14 * 0.14})`;
+      ctx.fillRect(W/2, H * 0.65, W/2, H * 0.35);
+    }
+
+    // Particles
+    for (const p of particles) {
+      ctx.globalAlpha = p.life / 32;
+      ctx.fillStyle = p.col;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Ball shadow
+    const floorY  = H * 0.88;
+    const shadowD  = Math.max(0, floorY - ball.y);
+    const shadowA  = Math.max(0, 0.44 - shadowD / H * 1.3);
+    const shadowSc = Math.max(0.2, 1 - shadowD / H * 2.8);
+    ctx.fillStyle = `rgba(0,0,0,${shadowA})`;
+    ctx.beginPath();
+    ctx.ellipse(ball.x, floorY - 2, BALL_R * shadowSc * 1.4, BALL_R * 0.28 * shadowSc, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    drawBall(ball.x, ball.y, ball.spin);
+    drawShoe(W * 0.27, H * 0.878, kickFlash.left,  'left');
+    drawShoe(W * 0.73, H * 0.878, kickFlash.right, 'right');
+
+    // Lives (hearts)
+    for (let i = 0; i < 3; i++) {
+      const hx = 18 + i * 22, hy = 18;
+      ctx.fillStyle = i < lives ? '#ef4444' : 'rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.arc(hx - 4, hy - 2, 5, Math.PI, 0);
+      ctx.arc(hx + 4, hy - 2, 5, Math.PI, 0);
+      ctx.lineTo(hx + 9, hy); ctx.lineTo(hx, hy + 9); ctx.lineTo(hx - 9, hy);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Combo
+    if (combo >= 2) {
+      const alpha = Math.min(1, 0.45 + combo * 0.07);
+      ctx.fillStyle = `rgba(250,204,21,${alpha})`;
+      ctx.font = `bold ${Math.round(W * 0.055)}px sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`×${combo + 1}`, W - 10, 27);
+      ctx.textAlign = 'left';
+    }
+
+    // ATW charged indicator
+    if (atw) {
+      ctx.fillStyle = '#84cc16';
+      ctx.font = `bold ${Math.round(W * 0.05)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(Lang.t('🔥 БЕЙ!', '🔥 SPER!', '🔥 KICK!'), W / 2, H * 0.13);
+      ctx.textAlign = 'left';
+    }
+
+    // Trick toast
+    if (trickToast) {
+      const age = (performance.now() - trickToast.t) / 1000;
+      if (age < 1.4) {
+        ctx.globalAlpha = age < 0.85 ? 1 : 1 - (age - 0.85) / 0.55;
+        ctx.fillStyle = trickToast.color;
+        ctx.font = `bold ${Math.round(W * 0.057)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(trickToast.text, W / 2, H * 0.21 - age * 20);
+        if (trickToast.pts > 0) {
+          ctx.fillStyle = '#fff';
+          ctx.font = `${Math.round(W * 0.04)}px sans-serif`;
+          ctx.fillText(`+${trickToast.pts}`, W / 2, H * 0.21 - age * 20 + 24);
+        }
+        ctx.globalAlpha = 1; ctx.textAlign = 'left';
+      } else {
+        trickToast = null;
+      }
+    }
+
+    // Zone labels (faint)
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.font = `${Math.round(W * 0.034)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText('👟 L', W * 0.25, H * 0.97);
+    ctx.fillText('👟 R', W * 0.75, H * 0.97);
+    ctx.textAlign = 'left';
+  }
+
+  function loop() {
+    raf = requestAnimationFrame(loop);
+    if (alive) step();
+    draw();
+  }
+
+  function start() {
+    cancelAnimationFrame(raf);
+    overlay.classList.remove('show');
+    reset();
+    raf = requestAnimationFrame(loop);
+  }
+
+  startBtn.addEventListener('click', () => { ensureAudio(); start(); });
+
+  // ---- Controls ----
+  board.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    ensureAudio();
+    const rect = board.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const W = getW(), H = getH();
+    const scaleX = W / rect.width, scaleY = H / rect.height;
+    const cx = px * scaleX, cy = py * scaleY;
+
+    gestureDown = true;
+    if (!gestureCenter) gestureCenter = { x: ball.x, y: ball.y };
+    gesturePts = [{ x: cx, y: cy }];
+
+    if (!alive) return;
+    if (cy > H * 0.52) kick(cx < W / 2 ? 'left' : 'right');
+  }, { passive: false });
+
+  board.addEventListener('pointermove', (e) => {
+    if (!gestureDown) return;
+    const rect = board.getBoundingClientRect();
+    const W = getW(), H = getH();
+    const cx = (e.clientX - rect.left) * W / rect.width;
+    const cy = (e.clientY - rect.top)  * H / rect.height;
+    updateGesture(cx, cy);
+  });
+
+  board.addEventListener('pointerup',     () => { gestureDown = false; });
+  board.addEventListener('pointercancel', () => { gestureDown = false; });
+
+  window.addEventListener('keydown', (e) => {
+    if (!alive) return;
+    if (e.key === 'ArrowLeft'  || e.key === 'a') { ensureAudio(); kick('left'); }
+    if (e.key === 'ArrowRight' || e.key === 'd') { ensureAudio(); kick('right'); }
+  });
+
+  fitCanvas();
+  draw();
+})();
+</script>
+</body>
+</html>
