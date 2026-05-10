@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0b1020" />
+<title>Pixel Art</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a33;
+    --grid: #1b2347;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --accent: #f472b6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px);
+    height: 100dvh;
+  }
+  header {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 0 0 auto;
+  }
+  .title-wrap { display: flex; align-items: center; gap: 10px; }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--panel);
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: 0.5px; }
+  .play-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .board-wrap {
+    position: relative;
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    overflow: hidden;
+    touch-action: none;
+  }
+  canvas { display: block; }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(11, 16, 32, 0.82);
+    backdrop-filter: blur(4px);
+    text-align: center;
+    padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .overlay h2 { margin: 0; font-size: 22px; }
+  .overlay p { margin: 0; color: var(--muted); font-size: 14px; }
+  button {
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: #04162e;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:active { transform: translateY(1px); }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; max-width: 800px; flex: 0 0 auto; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title-wrap">
+      <a class="back" href="index.html" data-en="← Menu" data-ru="Меню" data-lv="Izvēlne">← Menu</a>
+      <h1>Pixel Art</h1>
+    </div>
+  </header>
+
+  <div class="play-area">
+    <div class="board-wrap" id="board">
+      <canvas id="game"></canvas>
+      <div class="overlay show" id="overlay">
+        <h2 id="title">Pixel Art</h2>
+        <p id="msg"
+           data-en="Tap to paint. Pick a color. Save your art!"
+           data-ru="Тапни чтобы рисовать. Выбери цвет. Сохрани!"
+           data-lv="Pieskarties, lai krāsotu. Izvēlies krāsu. Saglabā!">Tap to paint. Pick a color. Save your art!</p>
+        <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint"
+       data-en="Tap to paint. Pick a color. Save your art!"
+       data-ru="Тапни чтобы рисовать. Выбери цвет. Сохрани!"
+       data-lv="Pieskarties, lai krāsotu. Izvēlies krāsu. Saglabā!">Tap to paint. Pick a color. Save your art!</div>
+</div>
+
+<script src="lang.js"></script>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const board = document.getElementById('board');
+  const playArea = document.querySelector('.play-area');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+
+  const BOARD_AR = 1 / 1;
+  const BOARD_MAX = 600;
+
+  function fitCanvas() {
+    const pa = playArea.getBoundingClientRect();
+    if (pa.width === 0 || pa.height === 0) return;
+    const w = Math.min(pa.width, pa.height * BOARD_AR, BOARD_MAX);
+    const h = w / BOARD_AR;
+    board.style.width = w + 'px';
+    board.style.height = h + 'px';
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', fitCanvas);
+  window.addEventListener('orientationchange', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(playArea);
+
+  function draw() {
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    ctx.fillStyle = '#131a33';
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  function start() {
+    overlay.classList.remove('show');
+    draw();
+  }
+
+  startBtn.addEventListener('click', start);
+  fitCanvas();
+  draw();
+})();
+</script>
+</body>
+</html>
