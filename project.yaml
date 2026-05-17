@@ -1,0 +1,16 @@
+name: playground
+purpose: "Single-file HTML mini-games for kids — no build step, pure browser arcade"
+users: "Kids, hobby gamers"
+stage: active
+goals:
+  - "Self-contained HTML games (no bundler, no node_modules)"
+  - "Bilingual UI (RU/LV switcher)"
+  - "Mobile-friendly touch controls"
+  - "Dark arcade aesthetic"
+  - "GitHub Pages hosting"
+similar:
+  - "Itch.io"
+  - "Classic arcade games"
+quality:
+  - responsive
+  - i18n
