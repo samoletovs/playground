@@ -98,6 +98,7 @@
            data-en="Swipe to steer. Catch 🍎 +1, 🍓 +5, avoid 💀!"
            data-ru="Свайп — поворот. Лови 🍎 +1, 🍓 +5, избегай 💀!"
            data-lv="Velc, lai grieztu. Ķer 🍎 +1, 🍓 +5, izvairies no 💀!">Swipe to steer. Catch 🍎 +1, 🍓 +5, avoid 💀!</p>
+        <div id="lb"></div>
         <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
       </div>
     </div>
@@ -110,6 +111,7 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="leaderboard.js"></script>
 
 <script>
 (() => {
@@ -316,6 +318,8 @@
     );
     msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
     startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+    Leaderboard.add('snake', score);
+    document.getElementById('lb').innerHTML = Leaderboard.renderHtml('snake');
     overlay.classList.add('show');
   }
 
@@ -605,6 +609,7 @@
 
   function start() {
     cancelAnimationFrame(raf);
+    document.getElementById('lb').innerHTML = '';
     overlay.classList.remove('show');
     reset();
     lastTick = 0;

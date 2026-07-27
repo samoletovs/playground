@@ -88,6 +88,7 @@
     <div class="overlay show" id="overlay">
       <h2 id="ovTitle">Space Invaders</h2>
       <p id="ovMsg" data-en="Drag to move · Tap to shoot" data-ru="Тяни для движения · Тап — выстрел" data-lv="Velc kustībai · Pieskaries šaut">Drag to move · Tap to shoot</p>
+      <div id="lb"></div>
       <button class="go" id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
     </div>
   </div>
@@ -96,6 +97,7 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="leaderboard.js"></script>
 <script>
 (() => {
   const canvas   = document.getElementById('game');
@@ -426,6 +428,8 @@
     );
     ovMsg.textContent = Lang.pickEs(`${Lang.esWin()} ${score}`, base, score >= best && score > 0 ? 0.55 : 0);
     startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+    Leaderboard.add('space-invaders', score);
+    document.getElementById('lb').innerHTML = Leaderboard.renderHtml('space-invaders');
     overlay.classList.add('show');
   }
 
@@ -612,6 +616,7 @@
 
   function startGame() {
     cancelAnimationFrame(raf);
+    document.getElementById('lb').innerHTML = '';
     overlay.classList.remove('show');
     ovTitle.textContent = 'Space Invaders';
     alive = true;

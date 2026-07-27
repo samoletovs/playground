@@ -139,6 +139,7 @@
            data-en="On-screen buttons. ↑ rotate, ↓ soft, ⤓ hard drop, H hold."
            data-ru="Кнопки на экране. ↑ поворот, ↓ вниз, ⤓ бросок, H запас."
            data-lv="Pogas. ↑ pagriezt, ↓ lejup, ⤓ mest, H rezerve.">On-screen buttons. ↑ rotate, ↓ soft, ⤓ hard drop, H hold.</p>
+        <div id="lb"></div>
         <button class="play-btn" id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
       </div>
     </div>
@@ -172,6 +173,7 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="leaderboard.js"></script>
 
 <script>
 (() => {
@@ -500,6 +502,8 @@
     );
     msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
     startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+    Leaderboard.add('tetris', score);
+    document.getElementById('lb').innerHTML = Leaderboard.renderHtml('tetris');
     overlay.classList.add('show');
   }
 
@@ -686,6 +690,7 @@
 
   function start() {
     cancelAnimationFrame(raf);
+    document.getElementById('lb').innerHTML = '';
     overlay.classList.remove('show');
     reset();
     lastDrop = 0;

@@ -85,6 +85,7 @@
            data-lv="Sper pa kreisi/labi. Apvelc ar pirkstu riņķi ap maisiņu — Apkārt pasaulei! Ātrā maiņa = Pāreja!">
           Tap left/right to kick. Swipe a circle for Around the World! Quick switch = Crossover!
         </p>
+        <div id="lb"></div>
         <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
       </div>
     </div>
@@ -99,6 +100,7 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="leaderboard.js"></script>
 <script>
 (() => {
   const canvas  = document.getElementById('game');
@@ -306,6 +308,8 @@
       const base = Lang.t(`Счёт ${score}. Жми Старт.`, `Rezultāts ${score}. Spied Sākt.`, `Score ${score}. Tap Start.`);
       overlayMsg.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, base, 0.5) : base;
       startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+      Leaderboard.add('footbag', score);
+      document.getElementById('lb').innerHTML = Leaderboard.renderHtml('footbag');
       overlay.classList.add('show');
       return;
     }
@@ -520,6 +524,7 @@
 
   function start() {
     cancelAnimationFrame(raf);
+    document.getElementById('lb').innerHTML = '';
     overlay.classList.remove('show');
     reset();
     raf = requestAnimationFrame(loop);

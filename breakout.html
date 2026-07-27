@@ -154,6 +154,7 @@
            data-en="Drag the paddle. Catch the falling power-ups!"
            data-ru="Тяни ракетку. Лови падающие бонусы!"
            data-lv="Velc plātni. Ķer krītošos bonusus!">Drag the paddle. Catch the falling power-ups!</p>
+        <div id="lb"></div>
         <button id="startBtn" data-en="Start" data-ru="Старт" data-lv="Sākt">Start</button>
       </div>
     </div>
@@ -166,6 +167,7 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="leaderboard.js"></script>
 
 <script>
 (() => {
@@ -415,6 +417,8 @@
     );
     msgEl.textContent = beatBest ? Lang.pickEs(`${Lang.esWin()} (${score})`, baseMsg, 0.5) : baseMsg;
     startBtn.textContent = Lang.t('Снова', 'Vēlreiz', 'Again');
+    Leaderboard.add('breakout', score);
+    document.getElementById('lb').innerHTML = Leaderboard.renderHtml('breakout');
     overlay.classList.add('show');
   }
 
@@ -692,6 +696,7 @@
   // --------------------------------------------------------------------------
   function start() {
     cancelAnimationFrame(raf);
+    document.getElementById('lb').innerHTML = '';
     overlay.classList.remove('show');
     reset(true);
     running = true;
