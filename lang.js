@@ -109,6 +109,10 @@
         background: rgba(74, 222, 128, 0.08);
       }
       .lang-btn:active { transform: translateY(1px); }
+      .lang-btn:focus-visible {
+        outline: 2px solid #4ade80;
+        outline-offset: 2px;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -154,6 +158,7 @@
         const en = el.getAttribute('data-en');
         const mode = el.getAttribute('data-tr-mode') || 'pair';
         const helper = base === 'lv' ? lv : ru;
+        el.removeAttribute('aria-label');
 
         if (mode === 'en') {
           if (en) el.textContent = en;
@@ -164,7 +169,8 @@
           return;
         }
         if (en && helper && helper !== en) {
-          el.innerHTML = `${escapeHtml(en)}<span class="lang-helper">${escapeHtml(helper)}</span>`;
+          el.innerHTML = `${escapeHtml(en)}<span class="lang-helper" lang="${base}" aria-hidden="true">${escapeHtml(helper)}</span>`;
+          el.setAttribute('aria-label', en);
         } else if (en) {
           el.textContent = en;
         } else if (helper) {
@@ -176,9 +182,11 @@
     renderSwitcher(el) {
       if (!el) return;
       el.classList.add('lang-switch');
+      el.setAttribute('role', 'group');
+      el.setAttribute('aria-label', 'Helper language switch');
       el.innerHTML =
-        '<button class="lang-btn ' + (base === 'ru' ? 'active' : '') + '" data-l="ru" type="button" aria-label="Russian">🇷🇺 RU</button>' +
-        '<button class="lang-btn ' + (base === 'lv' ? 'active' : '') + '" data-l="lv" type="button" aria-label="Latvian">🇱🇻 LV</button>';
+        '<button class="lang-btn ' + (base === 'ru' ? 'active' : '') + '" data-l="ru" type="button" aria-label="Russian" aria-pressed="' + (base === 'ru') + '">🇷🇺 RU</button>' +
+        '<button class="lang-btn ' + (base === 'lv' ? 'active' : '') + '" data-l="lv" type="button" aria-label="Latvian" aria-pressed="' + (base === 'lv') + '">🇱🇻 LV</button>';
       el.querySelectorAll('.lang-btn').forEach(btn => {
         btn.addEventListener('click', () => Lang.set(btn.getAttribute('data-l')));
       });

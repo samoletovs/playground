@@ -28,6 +28,19 @@
     margin: 0 auto;
     padding: max(env(safe-area-inset-top), 24px) 16px max(env(safe-area-inset-bottom), 24px);
   }
+  .skip-link {
+    position: absolute;
+    left: 8px;
+    top: -40px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    z-index: 1000;
+  }
+  .skip-link:focus-visible { top: 8px; }
   header { margin-bottom: 20px; }
   h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: 0.3px; }
   h1 .accent { color: #4ade80; }
@@ -76,6 +89,10 @@
   .card h2 { margin: 4px 0 0; font-size: 18px; }
   .card p { margin: 0; color: var(--muted); font-size: 13px; }
   .card-best { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); opacity: 0.7; }
+  .card:focus-visible {
+    outline: 2px solid #4ade80;
+    outline-offset: 2px;
+  }
   footer {
     margin-top: 24px;
     color: var(--muted);
@@ -86,67 +103,69 @@
 </head>
 <body>
 <div class="app">
+  <a class="skip-link" href="#main-content">Skip to games</a>
   <div id="lang-switch"></div>
   <header>
     <h1>play<span class="accent">Ground</span></h1>
     <p id="tagline">Pick a game. Phone or desktop.</p>
   </header>
+  <main id="main-content">
 
-  <div class="grid">
-    <a class="card" href="snake.html" data-game="snake">
-      <div class="icon snake">S</div>
+  <div class="grid" aria-label="Games list">
+    <a class="card" href="snake.html" data-game="snake" aria-label="Open Snake game">
+      <div class="icon snake" aria-hidden="true">S</div>
       <h2 data-en="Snake" data-ru="Змейка" data-lv="Čūska">Snake</h2>
       <p data-ru="Свайп — поворот. Не кусай хвост."
          data-lv="Velc, lai grieztu. Neiekod sevī."
          data-en="Swipe to steer. Don't bite yourself.">Swipe to steer. Don't bite yourself.</p>
     </a>
-    <a class="card" href="tetris.html" data-game="tetris">
-      <div class="icon tetris">T</div>
+    <a class="card" href="tetris.html" data-game="tetris" aria-label="Open Tetris game">
+      <div class="icon tetris" aria-hidden="true">T</div>
       <h2 data-en="Tetris" data-ru="Тетрис" data-lv="Tetris">Tetris</h2>
       <p data-ru="Кнопки на экране. Собирай линии."
          data-lv="Pogas uz ekrāna. Veido līnijas."
          data-en="On-screen buttons. Clear lines to level up.">On-screen buttons. Clear lines to level up.</p>
     </a>
-    <a class="card" href="breakout.html" data-game="breakout">
-      <div class="icon breakout">B</div>
+    <a class="card" href="breakout.html" data-game="breakout" aria-label="Open Breakout game">
+      <div class="icon breakout" aria-hidden="true">B</div>
       <h2 data-en="Breakout" data-ru="Арканоид" data-lv="Breakout">Breakout</h2>
       <p data-ru="Двигай ракетку. Разбей все кирпичи."
          data-lv="Velc plātni. Sasit visus ķieģeļus."
          data-en="Drag the paddle. Smash every brick.">Drag the paddle. Smash every brick.</p>
     </a>
-    <a class="card" href="table-tennis.html">
-      <div class="icon tennis">TT</div>
+    <a class="card" href="table-tennis.html" aria-label="Open Table Tennis game">
+      <div class="icon tennis" aria-hidden="true">TT</div>
       <h2 data-en="Table Tennis" data-ru="Пинг-понг" data-lv="Galda teniss">Table Tennis</h2>
       <p data-ru="Двигай ракетку. Победа — 7 очков."
          data-lv="Kustini plātni. Pirmais līdz 7 uzvar."
          data-en="Move your paddle. First to 7 wins.">Move your paddle. First to 7 wins.</p>
     </a>
-    <a class="card" href="footbag.html" data-game="footbag">
-      <div class="icon footbag">FB</div>
+    <a class="card" href="footbag.html" data-game="footbag" aria-label="Open Footbag game">
+      <div class="icon footbag" aria-hidden="true">FB</div>
       <h2 data-en="Footbag" data-ru="Набивка" data-lv="Futbags">Footbag</h2>
       <p data-en="Kick. Trick. Don't drop it!"
          data-ru="Бей. Трюк. Не урони!"
          data-lv="Sper. Triks. Nemestu!">Kick. Trick. Don't drop it!</p>
     </a>
-    <a class="card" href="space-invaders.html" data-game="space-invaders">
-      <div class="icon space-invaders">SI</div>
+    <a class="card" href="space-invaders.html" data-game="space-invaders" aria-label="Open Space Invaders game">
+      <div class="icon space-invaders" aria-hidden="true">SI</div>
       <h2 data-en="Space Invaders" data-ru="Космические захватчики" data-lv="Kosmosa iebrucēji">Space Invaders</h2>
       <p data-en="Shoot the aliens before they reach you!" data-ru="Стреляй по пришельцам — не дай им добраться!" data-lv="Šauj uz iebrucējiem — neļauj tiem sasniegt tevi!">Shoot the aliens before they reach you!</p>
     </a>
-    <a class="card" href="pixel-art.html">
-      <div class="icon pixel-art">PA</div>
+    <a class="card" href="pixel-art.html" aria-label="Open Pixel Art game">
+      <div class="icon pixel-art" aria-hidden="true">PA</div>
       <h2 data-en="Pixel Art" data-ru="Пиксель-арт" data-lv="Pikseļu māksla">Pixel Art</h2>
       <p data-en="Draw pixel art. Save your masterpiece."
          data-ru="Рисуй пикселями. Сохрани шедевр."
          data-lv="Zīmē pikseļus. Saglabā šedevru.">Draw pixel art. Save your masterpiece.</p>
     </a>
-    <a class="card" href="air-hockey.html">
-      <div class="icon air-hockey">AH</div>
+    <a class="card" href="air-hockey.html" aria-label="Open Air Hockey game">
+      <div class="icon air-hockey" aria-hidden="true">AH</div>
       <h2 data-en="Air Hockey" data-ru="Аэрохоккей" data-lv="Gaisa hokejs">Air Hockey</h2>
       <p data-en="2 players, one screen — drag your paddle!" data-ru="2 игрока, один экран — тяни клюшку!" data-lv="2 spēlētāji, viens ekrāns — velc nūju!">2 players, one screen — drag your paddle!</p>
     </a>
-    <a class="card" href="flappy-bird.html">
-      <div class="icon flappy-bird">FL</div>
+    <a class="card" href="flappy-bird.html" aria-label="Open Flappy Bird game">
+      <div class="icon flappy-bird" aria-hidden="true">FL</div>
       <h2 data-en="Flappy Bird" data-ru="Летающая птичка" data-lv="Lidojošais putniņš">Flappy Bird</h2>
       <p data-en="Tap to flap. Dodge every pipe."
          data-ru="Тапай, чтобы взмахнуть. Уклоняйся от труб."
@@ -155,6 +174,7 @@
   </div>
 
   <footer>Made for the playGround repo · <span id="footer-es">¡A jugar!</span></footer>
+  </main>
 </div>
 <script src="lang.js"></script>
 <script src="leaderboard.js"></script>
