@@ -5,11 +5,22 @@
  * API:
  *   Leaderboard.add(game, score)  → 1-based rank (1–5) or -1 if not in top 5
  *   Leaderboard.get(game)         → sorted array of up to 5 scores
+ *   Leaderboard.getAll()          → array of {id, meta, scores} for all registered games
  *   Leaderboard.renderHtml(game)  → overlay HTML snippet ('' if no entries)
+ *   Leaderboard.GAMES             → registered game metadata array
  */
 (() => {
   const MAX = 5;
   const MEDALS = ['🥇', '🥈', '🥉', '4.', '5.'];
+
+  var GAMES = [
+    { id: 'snake',          en: 'Snake',          ru: 'Змейка',                 lv: 'Čūska',              href: 'snake.html' },
+    { id: 'tetris',         en: 'Tetris',          ru: 'Тетрис',                 lv: 'Tetris',             href: 'tetris.html' },
+    { id: 'breakout',       en: 'Breakout',        ru: 'Арканоид',               lv: 'Breakout',           href: 'breakout.html' },
+    { id: 'footbag',        en: 'Footbag',         ru: 'Набивка',                lv: 'Futbags',            href: 'footbag.html' },
+    { id: 'space-invaders', en: 'Space Invaders',  ru: 'Космические захватчики', lv: 'Kosmosa iebrucēji',  href: 'space-invaders.html' },
+    { id: 'flappy-bird',    en: 'Flappy Bird',     ru: 'Летающая птичка',        lv: 'Lidojošais putniņš', href: 'flappy-bird.html' },
+  ];
 
   function key(game) { return 'lb.' + game; }
 
@@ -72,5 +83,13 @@
     document.addEventListener('DOMContentLoaded', injectStyle);
   }
 
-  window.Leaderboard = { get: get, add: add, renderHtml: renderHtml };
+  // Returns an array of {id, meta, scores} for every registered game.
+  // Games with no scores are included (scores will be []).
+  function getAll() {
+    return GAMES.map(function(g) {
+      return { id: g.id, meta: g, scores: get(g.id) };
+    });
+  }
+
+  window.Leaderboard = { get: get, add: add, renderHtml: renderHtml, getAll: getAll, GAMES: GAMES };
 })();

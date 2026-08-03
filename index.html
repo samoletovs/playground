@@ -93,6 +93,21 @@
     outline: 2px solid #4ade80;
     outline-offset: 2px;
   }
+  .leaderboard-row {
+    margin-top: 16px;
+    text-align: center;
+  }
+  .leaderboard-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px; border-radius: 12px;
+    background: var(--panel); color: var(--text);
+    text-decoration: none; font-size: 15px; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: transform 0.08s ease, background 0.15s ease;
+    border: 1px solid rgba(74,222,128,0.15);
+  }
+  .leaderboard-btn:active { transform: translateY(1px); background: var(--panel-2); }
+  .leaderboard-btn:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
   footer {
     margin-top: 24px;
     color: var(--muted);
@@ -171,6 +186,11 @@
          data-ru="Тапай, чтобы взмахнуть. Уклоняйся от труб."
          data-lv="Pieskaries, lai uzlidotu. Izvairies no caurulēm.">Tap to flap. Dodge every pipe.</p>
     </a>
+  </div>
+
+  <div class="leaderboard-row">
+    <a class="leaderboard-btn" href="leaderboard.html"
+       data-en="🏆 Leaderboard" data-ru="🏆 Рейтинг" data-lv="🏆 Rangs">🏆 Leaderboard</a>
   </div>
 
   <footer>Made for the playGround repo · <span id="footer-es">¡A jugar!</span></footer>

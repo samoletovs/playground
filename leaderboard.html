@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0b1020" />
+<title>Leaderboard · playGround</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a33;
+    --panel-2: #1b2347;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: max(env(safe-area-inset-top), 24px) 16px max(env(safe-area-inset-bottom), 48px);
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+  }
+  .back {
+    color: var(--muted); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 8px; background: var(--panel);
+    white-space: nowrap;
+  }
+  .back:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: 0.3px; }
+  .game-card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .game-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .game-title {
+    font-size: 16px; font-weight: 700; text-decoration: none; color: var(--text);
+  }
+  .game-title:hover { opacity: 0.8; }
+  .game-title:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; border-radius: 4px; }
+  .play-link {
+    font-size: 12px; color: #4ade80; text-decoration: none;
+    padding: 4px 8px; border-radius: 6px; background: rgba(74,222,128,0.1);
+    white-space: nowrap;
+  }
+  .play-link:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+  .empty-state {
+    text-align: center; color: var(--muted); padding: 48px 0;
+  }
+  .empty-state p { font-size: 15px; margin: 0 0 8px; }
+  .empty-state small { font-size: 13px; opacity: 0.6; }
+  footer {
+    margin-top: 24px; color: var(--muted); font-size: 12px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="index.html" data-en="← Menu" data-ru="← Меню" data-lv="← Izvēlne">← Menu</a>
+    <h1>🏆 <span data-en="Leaderboard" data-ru="Рейтинг" data-lv="Rangs">Leaderboard</span></h1>
+  </header>
+  <div id="boards"></div>
+  <footer>¡Juega y aprende!</footer>
+</div>
+<script src="lang.js"></script>
+<script src="leaderboard.js"></script>
+<script>
+(function () {
+  var container = document.getElementById('boards');
+  var all = Leaderboard.getAll();
+  var withScores = all.filter(function (e) { return e.scores.length > 0; });
+
+  if (!withScores.length) {
+    container.innerHTML =
+      '<div class="empty-state">' +
+        '<p>' + Lang.t('Пока нет очков', 'Vēl nav rezultātu', 'No scores yet') + '</p>' +
+        '<small>' + Lang.t(
+          'Сыграй в игры, чтобы заполнить таблицу!',
+          'Spēlē spēles, lai aizpildītu tabulu!',
+          'Play some games to fill the board!'
+        ) + '</small>' +
+      '</div>';
+    return;
+  }
+
+  var MEDALS = ['🥇', '🥈', '🥉', '4.', '5.'];
+  withScores.forEach(function (e) {
+    var g = e.meta;
+    var helper = Lang.tBase(g.ru, g.lv);
+    var titleHtml = (helper && helper !== g.en)
+      ? escHtml(g.en) + '<span class="lang-helper" lang="' + Lang.base + '" aria-hidden="true">' + escHtml(helper) + '</span>'
+      : escHtml(g.en);
+    var playLabel = Lang.t('Играть', 'Spēlēt', 'Play →');
+
+    var rows = e.scores.map(function (s, i) {
+      return '<li class="lb-row">' + MEDALS[i] + ' <span class="lb-score">' + s + '</span></li>';
+    }).join('');
+
+    var card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML =
+      '<div class="game-card-header">' +
+        '<a class="game-title" href="' + escHtml(g.href) + '" aria-label="' + escHtml(g.en) + '">' + titleHtml + '</a>' +
+        '<a class="play-link" href="' + escHtml(g.href) + '">' + escHtml(playLabel) + '</a>' +
+      '</div>' +
+      '<ol class="lb-list">' + rows + '</ol>';
+    container.appendChild(card);
+  });
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+})();
+</script>
+</body>
+</html>
