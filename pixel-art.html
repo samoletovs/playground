@@ -110,6 +110,18 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'pixel-art',
+  steps: [
+    { icon: '✏️', en: 'Pick a colour, then draw on the grid with your finger.', ru: 'Выбери цвет и рисуй по клеткам пальцем.', lv: 'Izvēlies krāsu un zīmē uz režģa ar pirkstu.' },
+    { icon: '🪣', en: 'The bucket fills an area, the square erases.', ru: 'Ведро заливает область, квадрат — стирает.', lv: 'Spainis aizpilda laukumu, kvadrāts dzēš.' },
+    { icon: '🔠', en: 'S, M and L change how thick your brush is.', ru: 'S, M и L меняют толщину кисти.', lv: 'S, M un L maina otas biezumu.' },
+    { icon: '💾', en: '💾 saves your picture, 🗑️ clears the canvas.', ru: '💾 сохраняет рисунок, 🗑️ очищает холст.', lv: '💾 saglabā zīmējumu, 🗑️ notīra audeklu.' },
+  ],
+});
+</script>
 <script>
 (() => {
   const canvas    = document.getElementById('game');

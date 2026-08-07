@@ -111,6 +111,19 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'snake',
+  steps: [
+    { icon: '👆', en: 'Swipe on the board to steer the snake.', ru: 'Свайп по полю — поворот змейки.', lv: 'Velc pa laukumu, lai grieztu čūsku.' },
+    { icon: '🍎', en: 'Eat apples to grow. 🍓 berries give 5 points.', ru: 'Ешь яблоки, чтобы расти. 🍓 даёт 5 очков.', lv: 'Ēd ābolus, lai augtu. 🍓 dod 5 punktus.' },
+    { icon: '💀', en: 'Avoid the skull and your own tail.', ru: 'Избегай черепа и своего хвоста.', lv: 'Izvairies no galvaskausa un savas astes.' },
+    { icon: '🟢', en: 'Power-ups: ghost, slow motion, double points.', ru: 'Бонусы: призрак, замедление, двойные очки.', lv: 'Bonusi: spoks, palēninājums, dubulti punkti.' },
+    { icon: '🏆', en: 'Tap Start and beat your best score!', ru: 'Жми Старт и побей свой рекорд!', lv: 'Spied Sākt un pārspēj savu rekordu!' },
+  ],
+});
+</script>
 <script src="leaderboard.js"></script>
 
 <script>

@@ -141,6 +141,18 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'flappy-bird',
+  steps: [
+    { icon: '👆', en: 'Tap the screen to make the bird flap.', ru: 'Тапай по экрану, чтобы птичка взлетала.', lv: 'Pieskaries ekrānam, lai putniņš uzlidotu.' },
+    { icon: '🚧', en: 'Fly through the gaps between the pipes.', ru: 'Пролетай в щели между трубами.', lv: 'Lido caur spraugām starp caurulēm.' },
+    { icon: '⌨️', en: 'Space or ↑ works too, if you use a keyboard.', ru: 'Пробел или ↑ тоже работают на клавиатуре.', lv: 'Space vai ↑ arī der, ja lieto tastatūru.' },
+    { icon: '🏆', en: 'Tap Start and beat your best score!', ru: 'Жми Старт и побей свой рекорд!', lv: 'Spied Sākt un pārspēj savu rekordu!' },
+  ],
+});
+</script>
 <script src="leaderboard.js"></script>
 <script>
 (() => {

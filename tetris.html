@@ -173,6 +173,19 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'tetris',
+  steps: [
+    { icon: '👇', en: 'Use the on-screen buttons to move the pieces.', ru: 'Двигай фигуры кнопками на экране.', lv: 'Kusti figūras ar pogām uz ekrāna.' },
+    { icon: '🔄', en: '↑ rotates the piece, ↓ drops it slowly.', ru: '↑ поворот фигуры, ↓ медленный спуск.', lv: '↑ pagriež figūru, ↓ nolaiž lēni.' },
+    { icon: '⤓', en: '⤓ drops the piece instantly. H saves it for later.', ru: '⤓ мгновенный сброс. H — сохранить фигуру.', lv: '⤓ nomet uzreiz. H — saglabā figūru.' },
+    { icon: '🧱', en: 'Fill a whole row to clear it. 4 rows at once = Tetris!', ru: 'Заполни ряд, чтобы убрать его. 4 ряда сразу = Тетрис!', lv: 'Aizpildi rindu, lai to notīrītu. 4 rindas = Tetris!' },
+    { icon: '🏆', en: 'Tap Start and beat your best score!', ru: 'Жми Старт и побей свой рекорд!', lv: 'Spied Sākt un pārspēj savu rekordu!' },
+  ],
+});
+</script>
 <script src="leaderboard.js"></script>
 
 <script>

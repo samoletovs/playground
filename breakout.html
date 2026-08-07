@@ -167,6 +167,18 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'breakout',
+  steps: [
+    { icon: '👆', en: 'Drag left and right to move the paddle.', ru: 'Тяни влево и вправо, чтобы двигать ракетку.', lv: 'Velc pa kreisi un pa labi, lai kustinātu plātni.' },
+    { icon: '🧱', en: 'Bounce the ball to break all the bricks.', ru: 'Отбивай мяч и разбей все кирпичи.', lv: 'Atsit bumbu un salauz visus ķieģeļus.' },
+    { icon: '🎁', en: 'Catch falling power-ups: wider, slower, multi-ball, extra life.', ru: 'Лови бонусы: шире, медленнее, много мячей, жизнь.', lv: 'Ķer bonusus: platāks, lēnāks, daudz bumbu, dzīvība.' },
+    { icon: '🏆', en: 'Tap Start and beat your best score!', ru: 'Жми Старт и побей свой рекорд!', lv: 'Spied Sākt un pārspēj savu rekordu!' },
+  ],
+});
+</script>
 <script src="leaderboard.js"></script>
 
 <script>

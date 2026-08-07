@@ -97,6 +97,18 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'space-invaders',
+  steps: [
+    { icon: '👆', en: 'Drag across the board to move your ship.', ru: 'Тяни по полю, чтобы двигать корабль.', lv: 'Velc pa laukumu, lai kustinātu kuģi.' },
+    { icon: '💥', en: 'Tap to shoot the aliens before they land.', ru: 'Тапай, чтобы стрелять по пришельцам.', lv: 'Pieskaries, lai šautu uz citplanētiešiem.' },
+    { icon: '🔫', en: 'The 🔫 button turns auto-fire on and off.', ru: 'Кнопка 🔫 включает автострельбу.', lv: 'Poga 🔫 ieslēdz automātisko šaušanu.' },
+    { icon: '❤️', en: 'You have 3 lives. Tap Start when you are ready!', ru: 'У тебя 3 жизни. Жми Старт, когда готов!', lv: 'Tev ir 3 dzīvības. Spied Sākt, kad esi gatavs!' },
+  ],
+});
+</script>
 <script src="leaderboard.js"></script>
 <script>
 (() => {

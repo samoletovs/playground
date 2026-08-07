@@ -138,6 +138,18 @@
 </div>
 
 <script src="lang.js"></script>
+<script src="tutorial.js"></script>
+<script>
+Tutorial.init({
+  game: 'air-hockey',
+  steps: [
+    { icon: '👆', en: 'Drag your paddle in the blue bottom half.', ru: 'Тяни клюшку по синей нижней половине.', lv: 'Velc savu nūju zilajā apakšpusē.' },
+    { icon: '🥅', en: 'Hit the puck into the other goal to score.', ru: 'Забей шайбу в чужие ворота.', lv: 'Iesit ripu pretinieka vārtos.' },
+    { icon: '👥', en: 'Play the bot, or pick 2 Players and share the phone.', ru: 'Играй с ботом или выбери 2 игрока на одном телефоне.', lv: 'Spēlē pret botu vai izvēlies 2 spēlētājus vienā telefonā.' },
+    { icon: '🏆', en: 'First to 5 goals wins. Tap Start!', ru: 'Первый до 5 голов побеждает. Жми Старт!', lv: 'Pirmais līdz 5 vārtiem uzvar. Spied Sākt!' },
+  ],
+});
+</script>
 <script>
 (() => {
   const canvas   = document.getElementById('game');
