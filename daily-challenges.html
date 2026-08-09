@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1020" />
+<title>Daily Challenges · playGround</title>
+<style>
+  :root { --bg: #0b1020; --panel: #131a33; --text: #e5e7eb; --muted: #94a3b8; --accent: #facc15; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+  .app { max-width: 520px; margin: 0 auto; padding: max(env(safe-area-inset-top), 24px) 16px max(env(safe-area-inset-bottom), 32px); }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .back { color: var(--muted); text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 8px; background: var(--panel); }
+  .back:focus-visible, .challenge:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h1 { margin: 0; font-size: 22px; }
+  .intro { margin: 0 0 16px; color: var(--muted); line-height: 1.45; }
+  .progress { color: var(--accent); font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+  .challenge { display: flex; align-items: center; gap: 14px; padding: 16px; margin: 0 0 12px; color: var(--text); text-decoration: none; background: var(--panel); border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+  .challenge.done { opacity: .65; }
+  .icon { font-size: 28px; width: 34px; text-align: center; }
+  .mission { flex: 1; font-size: 16px; font-weight: 700; }
+  .state { color: var(--accent); font-size: 20px; }
+  footer { margin-top: 24px; text-align: center; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="back" href="index.html" data-en="← Menu" data-ru="← Меню" data-lv="← Izvēlne">← Menu</a>
+    <h1>🎯 <span data-en="Daily Challenges" data-ru="Задания дня" data-lv="Dienas uzdevumi">Daily Challenges</span></h1>
+  </header>
+  <p class="intro" data-en="Start each game to finish its mission. New missions arrive tomorrow." data-ru="Запусти каждую игру, чтобы выполнить задание. Завтра будут новые." data-lv="Sāc katru spēli, lai pabeigtu uzdevumu. Rīt būs jauni.">Start each game to finish its mission. New missions arrive tomorrow.</p>
+  <p class="progress" id="progress"></p>
+  <div id="challenges"></div>
+  <footer>¡Misión del día!</footer>
+</div>
+<script src="lang.js"></script>
+<script src="daily.js"></script>
+<script>
+(() => {
+  function escapeHtml(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const challenges = Daily.picks();
+  const done = Daily.completed();
+  const total = challenges.filter(game => done[game.id]).length;
+  document.getElementById('progress').textContent = total + ' / ' + challenges.length + ' · ' + Lang.t('выполнено', 'pabeigti', 'completed');
+  document.getElementById('challenges').innerHTML = challenges.map(game => {
+    const finished = !!done[game.id];
+    const state = finished ? Lang.t('Выполнено', 'Pabeigts', 'Completed') : Lang.t('Не выполнено', 'Nav pabeigts', 'Not completed');
+    return '<a class="challenge' + (finished ? ' done' : '') + '" href="' + escapeHtml(game.href) + '">' +
+      '<span class="icon" aria-hidden="true">' + escapeHtml(game.icon) + '</span>' +
+      '<span class="mission">' + escapeHtml(Lang.t('Сыграй в ' + game.ru, 'Spēlē ' + game.lv, 'Play ' + game.en)) + '</span>' +
+      '<span class="state" aria-label="' + escapeHtml(state) + '">' + (finished ? '✓' : '○') + '</span></a>';
+  }).join('');
+})();
+</script>
+</body>
+</html>
