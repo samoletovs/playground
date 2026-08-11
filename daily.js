@@ -23,12 +23,21 @@
     return 'daily.' + day();
   }
 
+  // Deterministic 32-bit mix — same date always gives the same order,
+  // and a one-day change gives a completely different one.
+  function hash(seed, index) {
+    let value = (seed + index * 0x9e3779b9) >>> 0;
+    value = Math.imul(value ^ (value >>> 16), 0x85ebca6b) >>> 0;
+    value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35) >>> 0;
+    return (value ^ (value >>> 16)) >>> 0;
+  }
+
   function picks() {
     let seed = 0;
-    for (const char of day()) seed = (seed * 31 + char.charCodeAt(0)) >>> 0;
+    for (const char of day()) seed = (Math.imul(seed, 31) + char.charCodeAt(0)) >>> 0;
     return GAMES.map((game, index) => ({
       game,
-      order: ((seed ^ (index * 0x9e3779b9)) >>> 0),
+      order: hash(seed, index),
     })).sort((a, b) => a.order - b.order).slice(0, 3).map(entry => entry.game);
   }
 
@@ -41,6 +50,21 @@
     }
   }
 
+  // Yesterday's missions are gone — drop their leftover keys so storage stays tidy.
+  const DAY_KEY = /^daily\.\d{4}-\d{2}-\d{2}$/;
+
+  function prune() {
+    const today = key();
+    const stale = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const name = localStorage.key(i);
+        if (name && name !== today && DAY_KEY.test(name)) stale.push(name);
+      }
+      stale.forEach(name => localStorage.removeItem(name));
+    } catch (_) {}
+  }
+
   function mark(game) {
     if (!picks().some(item => item.id === game)) return;
     const games = completed();
@@ -48,6 +72,7 @@
     try {
       localStorage.setItem(key(), JSON.stringify({ games }));
     } catch (_) {}
+    prune();
   }
 
   function init(game) {
@@ -60,5 +85,5 @@
     if (board) board.addEventListener('pointerdown', () => mark(game), { once: true });
   }
 
-  window.Daily = { GAMES, day, picks, completed, mark, init };
+  window.Daily = { GAMES, day, picks, completed, mark, prune, init };
 })();
