@@ -84,7 +84,7 @@
 
   <div class="board-wrap" id="board">
     <canvas id="game"></canvas>
-    <button id="afBtn">🔫 Auto: OFF</button>
+    <button id="afBtn" data-en="🔫 Auto: OFF" data-ru="🔫 Авто: выкл." data-lv="🔫 Auto: izsl.">🔫 Auto: OFF</button>
     <div class="overlay show" id="overlay">
       <h2 id="ovTitle">Space Invaders</h2>
       <p id="ovMsg" data-en="Drag to move · Tap to shoot" data-ru="Тяни для движения · Тап — выстрел" data-lv="Velc kustībai · Pieskaries šaut">Drag to move · Tap to shoot</p>
@@ -643,7 +643,12 @@ Tutorial.init({
   afBtn.addEventListener('pointerdown', e => e.stopPropagation());
   afBtn.addEventListener('click', () => {
     autoFireOn = !autoFireOn;
-    afBtn.textContent = autoFireOn ? '🔫 Auto: ON' : '🔫 Auto: OFF';
+    afBtn.textContent = Lang.t(
+      autoFireOn ? '🔫 Авто: вкл.' : '🔫 Авто: выкл.',
+      autoFireOn ? '🔫 Auto: iesl.' : '🔫 Auto: izsl.',
+      autoFireOn ? '🔫 Auto: ON' : '🔫 Auto: OFF'
+    );
+    afBtn.setAttribute('aria-label', autoFireOn ? '🔫 Auto: ON' : '🔫 Auto: OFF');
     afBtn.classList.toggle('on', autoFireOn);
   });
 

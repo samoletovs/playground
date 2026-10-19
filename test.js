@@ -145,11 +145,41 @@ async function testGameFeatures() {
   }
 }
 
+async function testAutoFireLabels() {
+  const previousLanguage = localStorage.getItem('playground.base');
+  const frame = document.createElement('iframe');
+  frame.hidden = true;
+  try {
+    for (const language of ['ru', 'lv']) {
+      localStorage.setItem('playground.base', language);
+      await new Promise((resolve, reject) => {
+        frame.onload = resolve;
+        frame.onerror = reject;
+        frame.src = `space-invaders.html?label-test=${language}`;
+        if (!frame.isConnected) document.body.appendChild(frame);
+      });
+      const button = frame.contentDocument.querySelector('#afBtn');
+      for (const enabled of [true, false]) {
+        button.click();
+        const state = enabled ? 'ON' : 'OFF';
+        console.assert(button.classList.contains('on') === enabled, 'Test failed: auto-fire state should toggle');
+        console.assert(button.textContent.includes(`Auto: ${state}`), 'Test failed: auto-fire visible label should match state');
+        console.assert(button.getAttribute('aria-label') === `🔫 Auto: ${state}`, 'Test failed: auto-fire accessible label should match state');
+      }
+    }
+  } finally {
+    frame.remove();
+    if (previousLanguage === null) localStorage.removeItem('playground.base');
+    else localStorage.setItem('playground.base', previousLanguage);
+  }
+}
+
 // Tutorial.init() waits for DOM ready, so run its checks once the page is loaded.
 window.addEventListener('load', async () => {
   testLang();
   testTutorial();
   testDaily();
   await testGameFeatures();
+  await testAutoFireLabels();
   console.log('All tests passed!');
 });

@@ -431,7 +431,7 @@ Tutorial.init({
       showToast(Lang.pickEs('¡Tetris!', 'TETRIS!', 0.3));
     } else {
       sfx.line();
-      if (combo >= 2) showToast(`Combo ×${combo}`);
+      if (combo >= 2) showToast(Lang.t(`Комбо ×${combo}`, `Kombo ×${combo}`, `Combo ×${combo}`));
     }
 
     // Level up every 10 lines
