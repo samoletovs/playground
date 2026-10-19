@@ -80,10 +80,106 @@ function testDaily() {
   localStorage.removeItem('daily.' + daily.day());
 }
 
+async function testGameFeatures() {
+  const games = [
+    {
+      file: 'air-hockey.html', feature: '#s1', featurePattern: /scores\[scorer\]\+\+/,
+      controls: '#board', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+    {
+      file: 'breakout.html', feature: '#score', featurePattern: /score \+= b\.points/,
+      controls: '#board', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+    {
+      file: 'flappy-bird.html', feature: '#score', featurePattern: /score \+= 1/,
+      controls: '#board', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+    {
+      file: 'footbag.html', feature: '#score', featurePattern: /score \+= pts/,
+      controls: '#board', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+    {
+      file: 'pixel-art.html', feature: '#palette', featurePattern: /function paintAt\(/,
+      controls: '#toolbar', statePattern: /function savePixels\(\)[\s\S]*?localStorage\.setItem\(SAVE_KEY/,
+    },
+    {
+      file: 'snake.html', feature: '#score', featurePattern: /score \+= 10 \* mul/,
+      controls: '#board', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+    {
+      file: 'space-invaders.html', feature: '#scoreEl', featurePattern: /score \+= pts/,
+      controls: '#board', statePattern: /function startGame\(\)[\s\S]*?initGame\(\)/,
+    },
+    {
+      file: 'table-tennis.html', feature: '#scorePlayer', featurePattern: /score[LR] \+= pts/,
+      controls: '#canvas', statePattern: /function startGame\(\)[\s\S]*?running = true/,
+    },
+    {
+      file: 'tetris.html', feature: '#score', featurePattern: /score \+= gained/,
+      controls: '#controls', statePattern: /function start\(\)[\s\S]*?overlay\.classList\.remove\('show'\)/,
+    },
+  ];
+
+  for (const game of games) {
+    try {
+      const response = await fetch(game.file);
+      const source = await response.text();
+      const page = new DOMParser().parseFromString(source, 'text/html');
+      const scripts = [...page.querySelectorAll('script:not([src])')].map(script => script.textContent).join('\n');
+
+      console.assert(
+        response.ok && page.querySelector(game.feature) && game.featurePattern.test(scripts),
+        `Test failed: ${game.file} should implement its score or core feature`
+      );
+      console.assert(
+        page.querySelector(game.controls) && /addEventListener\('(?:keydown|pointerdown|touchstart)'/.test(scripts),
+        `Test failed: ${game.file} should provide game controls`
+      );
+      console.assert(
+        game.statePattern.test(scripts),
+        `Test failed: ${game.file} should implement a game state transition`
+      );
+    } catch (error) {
+      console.assert(false, `Test failed: could not test ${game.file}: ${error.message}`);
+    }
+  }
+}
+
+async function testAutoFireLabels() {
+  const previousLanguage = localStorage.getItem('playground.base');
+  const frame = document.createElement('iframe');
+  frame.hidden = true;
+  try {
+    for (const language of ['ru', 'lv']) {
+      localStorage.setItem('playground.base', language);
+      await new Promise((resolve, reject) => {
+        frame.onload = resolve;
+        frame.onerror = reject;
+        frame.src = `space-invaders.html?label-test=${language}`;
+        if (!frame.isConnected) document.body.appendChild(frame);
+      });
+      const button = frame.contentDocument.querySelector('#afBtn');
+      for (const enabled of [true, false]) {
+        button.click();
+        const state = enabled ? 'ON' : 'OFF';
+        console.assert(button.classList.contains('on') === enabled, 'Test failed: auto-fire state should toggle');
+        console.assert(button.textContent.includes(`Auto: ${state}`), 'Test failed: auto-fire visible label should match state');
+        console.assert(button.getAttribute('aria-label') === `🔫 Auto: ${state}`, 'Test failed: auto-fire accessible label should match state');
+      }
+    }
+  } finally {
+    frame.remove();
+    if (previousLanguage === null) localStorage.removeItem('playground.base');
+    else localStorage.setItem('playground.base', previousLanguage);
+  }
+}
+
 // Tutorial.init() waits for DOM ready, so run its checks once the page is loaded.
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   testLang();
   testTutorial();
   testDaily();
+  await testGameFeatures();
+  await testAutoFireLabels();
   console.log('All tests passed!');
 });

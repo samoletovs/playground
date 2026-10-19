@@ -648,6 +648,7 @@ Tutorial.init({
       autoFireOn ? '🔫 Auto: iesl.' : '🔫 Auto: izsl.',
       autoFireOn ? '🔫 Auto: ON' : '🔫 Auto: OFF'
     );
+    afBtn.setAttribute('aria-label', autoFireOn ? '🔫 Auto: ON' : '🔫 Auto: OFF');
     afBtn.classList.toggle('on', autoFireOn);
   });
 
