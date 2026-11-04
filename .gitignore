@@ -8,3 +8,4 @@ dist/
 *.png
 screenshots/
 .playwright-mcp/
+coverage/

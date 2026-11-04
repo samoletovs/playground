@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A static-site games playground for a kid's hobby projects. Each game is one self-contained `.html` file at the repo root. The site is hosted on GitHub Pages at `playground.naurolabs.com` (CNAME) — no build, no bundler, no package.json, no tests. Open the file in a browser to run it.
+A static-site games playground for a kid's hobby projects. Each game is one self-contained `.html` file at the repo root. The site is hosted on GitHub Pages at `playground.naurolabs.com` (CNAME) — no build or bundler. Open the file in a browser to run it. Development-only Jest tests run with `npm ci` and `npm test` on Node.js 22+; see README.md for coverage details.
 
 ## Local preview
 

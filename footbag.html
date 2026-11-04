@@ -420,6 +420,7 @@ Tutorial.init({
   }
 
   function draw() {
+    if (!ball) return;
     const W = getW(), H = getH();
 
     // Background
@@ -548,6 +549,7 @@ Tutorial.init({
 
   // ---- Controls ----
   board.addEventListener('pointerdown', (e) => {
+    if (!alive) return;
     e.preventDefault();
     ensureAudio();
     const rect = board.getBoundingClientRect();
@@ -561,7 +563,6 @@ Tutorial.init({
     if (!gestureCenter) gestureCenter = { x: ball.x, y: ball.y };
     gesturePts = [{ x: cx, y: cy }];
 
-    if (!alive) return;
     if (cy > H * 0.52) kick(cx < W / 2 ? 'left' : 'right');
   }, { passive: false });
 
