@@ -13,13 +13,17 @@ for (const name of fs.readdirSync(root).filter(name => /\.(html|js)$/.test(name)
   const text = fs.readFileSync(filename, 'utf8');
   let source = text;
   if (name.endsWith('.html')) {
+    const parsed = new JSDOM(text, { includeNodeLocations: true });
     let end = 0;
     source = '';
-    for (const match of text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
-      source += '\n'.repeat((text.slice(end, match.index) + match[0].slice(0, match[0].indexOf('>') + 1)).split('\n').length - 1);
-      source += /\bsrc\s*=/.test(match[1]) ? '\n'.repeat(match[2].split('\n').length - 1) : match[2];
-      end = match.index + match[0].length;
+    for (const script of parsed.window.document.querySelectorAll('script:not([src])')) {
+      const location = parsed.nodeLocation(script);
+      const start = location.startTag.endOffset;
+      source += '\n'.repeat(text.slice(end, start).split('\n').length - 1);
+      source += text.slice(start, location.endTag.startOffset);
+      end = location.endTag.startOffset;
     }
+    parsed.window.close();
   }
   if (!source.trim()) continue;
   const instrumenter = createInstrumenter({ compact: false });

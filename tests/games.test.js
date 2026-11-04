@@ -255,6 +255,9 @@ test.each(['ru', 'lv'])('Space Invaders auto-fire labels and scoring work with %
 test('Footbag kicks score, a circle charges a trick, and three drops end the game', () => {
   page = openPage('footbag.html');
   expect(page.document.querySelector('#overlay').classList.contains('show')).toBe(true);
+  const startPointer = page.event(page.document.querySelector('#startBtn'), 'pointerdown', { clientX: 100, clientY: 100 });
+  expect(startPointer.defaultPrevented).toBe(false);
+  expect(page.state('gestureDown')).toBe(false);
   page.click('#startBtn');
   page.key('ArrowLeft');
   expect(page.state('score')).toBe(1);
