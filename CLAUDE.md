@@ -75,13 +75,13 @@ These are load-bearing for the "feels right on a phone" experience — match the
 
 ## Adding a new game (and editing existing ones)
 
-**Use the PR + auto-merge flow.** Claude Code on mobile creates a PR by default (it doesn't push directly to `main` for safety). The repo's auto-merge workflow (`.github/workflows/auto-merge.yml`) squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **Real measured time: PR opens → auto-merge fires in ~10–15 seconds → GitHub Pages deploys in another ~30 seconds. Total: ~40–45s from "PR opened" to "kid plays".** That's fine — don't try to bypass the PR step.
+**Use the PR + auto-merge flow.** Claude Code on mobile creates a PR by default (it doesn't push directly to `main` for safety). The repo's auto-merge workflow (`.github/workflows/auto-merge.yml`) runs the test suite (`npm test`) and, if it passes, squash-merges PRs from the repo owner, `claude[bot]`, `copilot[bot]`, and `app/claude` automatically and deletes the branch. **PR opens → tests and merge in about a minute → GitHub Pages deploys in another ~30 seconds.** That's fine — don't try to bypass the PR step.
 
 Use the `new-game` skill (`.claude/skills/new-game/`) to scaffold a runnable empty shell with all conventions baked in. The skill handles branch + commit + push + PR for you.
 
 For **bug fixes and feature additions** to existing games: same flow. Branch from `main`, commit, push, open PR, let auto-merge land it. Tell the kid the URL with a `?v=<timestamp>` cache-bust so they hit fresh content immediately.
 
-There is no human review and no CI gate — anything that gets a PR opened ships immediately. Test the file in a browser before pushing if you can.
+There is no human review, but the test suite is a gate: a PR whose tests fail does not merge — fix it and push again. Test the file in a browser before pushing if you can.
 
 If you're editing manually: pull `main`, branch as `claude/<game-name>` or `claude/<change>`, create or edit `<game-name>.html` at the repo root (copy an existing game as a starting point for new ones), add a card to `index.html` with `data-en/data-ru/data-lv` attributes on title and tagline, add the matching `.icon.<name>` color rule, commit, push the branch, open a PR with `gh pr create`. Auto-merge takes it from there.
 
