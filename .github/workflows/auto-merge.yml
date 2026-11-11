@@ -1,5 +1,10 @@
 name: Auto-merge PRs
 
+# The kid-facing fast path: a PR from the owner or an agent ships in about a
+# minute. It merges with GITHUB_TOKEN on purpose - GitHub Pages builds from the
+# branch, and that build is not a workflow run, so it still fires. The test
+# suite runs first: nothing merges untested, and a push made while the suite
+# runs cannot sneak in, because the merge is pinned to the tested head.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -7,6 +12,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   auto-merge:
@@ -17,11 +26,26 @@ jobs:
       github.event.pull_request.user.login == 'copilot[bot]' ||
       github.event.pull_request.user.login == 'app/claude'
     steps:
+      - uses: actions/checkout@v5
+        with:
+          # PR code runs below; it must not inherit a write token.
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test before merging
+        run: npm test
+
       - name: Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh pr merge ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }} \
+          gh pr merge "$PR" \
+            --repo "$GITHUB_REPOSITORY" \
             --squash \
+            --match-head-commit "$HEAD_SHA" \
             --delete-branch
